@@ -46,7 +46,7 @@ export const UI_VIS_MAP = {
 };
 
 // Keys hidden by default on first run (no localStorage yet).
-export const UI_VIS_DEFAULT_OFF = new Set(['rag-toggle-btn', 'text-emojis', 'chat-fullwidth']);
+export const UI_VIS_DEFAULT_OFF = new Set(['rag-toggle-btn', 'text-emojis', 'chat-fullwidth', 'tool-cookbook', 'tool-gallery', 'email-section']);
 
 /**
  * Resolve every UI_VIS_MAP selector to visible (true) or hidden (false) for the

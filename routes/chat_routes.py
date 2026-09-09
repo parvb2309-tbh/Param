@@ -75,6 +75,13 @@ logger = logging.getLogger(__name__)
 _active_streams: Dict[str, dict] = {}
 
 
+def get_active_streaming_session_ids() -> list:
+    """Session ids with an in-flight stream right now. Used by the admin GPU
+    Usage panel to correlate live GPU load with whichever model(s) are
+    currently in flight."""
+    return list(_active_streams.keys())
+
+
 def _stream_failure_status(chunk: str) -> Optional[int]:
     """Extract a provider status without retaining provider-supplied detail."""
 

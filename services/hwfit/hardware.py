@@ -905,3 +905,113 @@ def detect_system(host="", ssh_port="", platform="", fresh=False):
     _remote_platform = None
     _cache_by_host[cache_key] = (now, result)
     return result
+
+
+def _live_nvidia_usage():
+    """Uncached live per-GPU utilization/memory/temperature via nvidia-smi.
+    Same path-fallback plumbing as _detect_nvidia(), extended to the live
+    utilization/memory-used/temperature fields (which the capacity-only
+    query in _detect_nvidia() doesn't request)."""
+    query = "--query-gpu=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu"
+    out = _run(["nvidia-smi", query, "--format=csv,noheader,nounits"])
+    if not out and _remote_host:
+        out = _run(f"bash -lc '{SSH_PATH_OVERRIDE}nvidia-smi {query} --format=csv,noheader,nounits'")
+    if not out:
+        for _p in NVIDIA_PATH_CANDIDATES:
+            if _remote_host:
+                out = _run(f"{_p} {query} --format=csv,noheader,nounits")
+            else:
+                out = _run([_p, query, "--format=csv,noheader,nounits"])
+            if out:
+                break
+    if not out:
+        return None
+
+    gpus = []
+    for line in out.strip().split("\n"):
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) < 6:
+            continue
+        try:
+            gpus.append({
+                "index": int(parts[0]),
+                "name": parts[1],
+                "utilization_pct": int(float(parts[2])),
+                "memory_used_gb": round(float(parts[3]) / 1024.0, 2),
+                "memory_total_gb": round(float(parts[4]) / 1024.0, 2),
+                "temperature_c": int(float(parts[5])),
+            })
+        except ValueError:
+            continue
+    if not gpus:
+        return None
+    return {"live_supported": True, "backend": "cuda", "gpus": gpus}
+
+
+def _live_amd_usage():
+    """Uncached live per-GPU utilization/memory for AMD cards on Linux, via
+    the same /sys/class/drm sysfs nodes _detect_amd() already enumerates for
+    static capacity — additionally reading gpu_busy_percent and
+    mem_info_vram_used. Local host only; no live sysfs path over SSH here."""
+    if _remote_host:
+        return None
+
+    def _read(path):
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                return f.read().strip()
+        except Exception:
+            return None
+
+    try:
+        entries = [e for e in os.listdir("/sys/class/drm") if e.startswith("card") and "-" not in e]
+    except Exception:
+        return None
+
+    gpus = []
+    for idx, entry in enumerate(entries):
+        base = f"/sys/class/drm/{entry}/device"
+        vendor = _read(f"{base}/vendor")
+        if vendor != "0x1002":
+            continue
+        vram_total_raw = _read(f"{base}/mem_info_vram_total")
+        vram_used_raw = _read(f"{base}/mem_info_vram_used")
+        busy_raw = _read(f"{base}/gpu_busy_percent")
+        if not (vram_total_raw and vram_total_raw.isdigit()):
+            continue
+        vram_total = int(vram_total_raw)
+        vram_used = int(vram_used_raw) if vram_used_raw and vram_used_raw.isdigit() else 0
+        util_pct = int(busy_raw) if busy_raw and busy_raw.isdigit() else 0
+        name = _read(f"{base}/product_name") or f"AMD GPU ({entry})"
+        gpus.append({
+            "index": idx,
+            "name": name,
+            "utilization_pct": util_pct,
+            "memory_used_gb": round(vram_used / (1024 ** 3), 2),
+            "memory_total_gb": round(vram_total / (1024 ** 3), 2),
+            "temperature_c": None,
+        })
+    if not gpus:
+        return None
+    return {"live_supported": True, "backend": "rocm", "gpus": gpus}
+
+
+def get_live_gpu_usage(host="", ssh_port="", platform=""):
+    """Uncached, on-demand live GPU utilization snapshot for the admin GPU
+    Usage panel. Deliberately never touches _cache_by_host — callers poll
+    this only while that tab is open, and 24h-cached capacity data would be
+    the wrong lifetime for a "right now" reading."""
+    global _remote_host, _remote_port, _remote_platform
+    _remote_host = host or None
+    _remote_port = ssh_port or None
+    _remote_platform = platform or None
+    try:
+        result = _live_nvidia_usage() or _live_amd_usage()
+    finally:
+        _remote_host = None
+        _remote_port = None
+        _remote_platform = None
+
+    if result:
+        return result
+    return {"live_supported": False, "reason": "No supported GPU (NVIDIA or Linux AMD) detected on this host"}

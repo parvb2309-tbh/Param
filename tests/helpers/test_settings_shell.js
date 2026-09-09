@@ -254,6 +254,11 @@ function buildFixture(document) {
     return { button, panel };
   };
 
+  // Mirrors the production Settings registry: Users / Agent Tools / System
+  // moved out to the standalone admin-only modal (see admin.js), so they are
+  // no longer part of the Settings fixture. Add Models / Added Models /
+  // Integrations stay — they're admin-controller-tagged for historical data-
+  // loading reasons but remain visible to every user.
   const panelIds = [
     'services',
     'added-models',
@@ -265,9 +270,6 @@ function buildFixture(document) {
     'appearance',
     'shortcuts',
     'account',
-    'tools',
-    'users',
-    'system',
   ];
 
   const settingsPanels = Object.fromEntries(
@@ -281,7 +283,7 @@ function buildFixture(document) {
     content,
     services: settingsPanels.services,
     appearance: settingsPanels.appearance,
-    system: settingsPanels.system,
+    ai: settingsPanels.ai,
     settingsPanels,
     searchInput,
     searchResults,
@@ -384,9 +386,6 @@ function moduleSource(relativePath) {
       'appearance',
       'shortcuts',
       'account',
-      'tools',
-      'users',
-      'system',
     ].join(','),
   );
 
@@ -397,23 +396,27 @@ function moduleSource(relativePath) {
       'communications',
       'experience',
       'account',
-      'administration',
     ].join(','),
   );
 
   check(
-    'Settings registry keeps services, models, integrations and admin panels on the existing admin controller',
-    ['services', 'added-models', 'integrations', 'tools', 'users', 'system']
+    'Settings registry keeps self-service model/integration tabs on the existing admin controller',
+    ['services', 'added-models', 'integrations']
       .every(id => context.isAdminManagedSettingsTab(id))
       && ['ai', 'search', 'email', 'reminders', 'appearance', 'shortcuts', 'account']
-        .every(id => !context.isAdminManagedSettingsTab(id)),
+        .every(id => !context.isAdminManagedSettingsTab(id))
+      // Users / Agent Tools / System moved out entirely — the registry no
+      // longer recognizes them at all, so routing correctly falls through
+      // to plain local activation rather than a (now nonexistent) delegate.
+      && ['tools', 'users', 'system'].every(id => !context.isAdminManagedSettingsTab(id)),
   );
 
   check(
-    'Settings registry distinguishes admin-only visibility from admin-controlled routing',
-    ['tools', 'users', 'system'].every(id => context.isAdminOnlySettingsTab(id))
-      && ['services', 'added-models', 'integrations']
-        .every(id => !context.isAdminOnlySettingsTab(id)),
+    'Settings registry no longer has admin-only panels (Users / Agent Tools / System moved to the standalone Admin modal)',
+    [
+      'services', 'added-models', 'ai', 'search', 'integrations', 'email',
+      'reminders', 'appearance', 'shortcuts', 'account', 'tools', 'users', 'system',
+    ].every(id => !context.isAdminOnlySettingsTab(id)),
   );
 
   check(
@@ -443,11 +446,9 @@ function moduleSource(relativePath) {
   );
 
   check(
-    'Settings search excludes admin-only panels for non-admin users',
+    'Settings search no longer surfaces the Agent Tools panel (moved to the standalone Admin modal)',
     context.searchSettingsPanels('agent tools', { isAdmin: false }).length === 0
-      && context.searchSettingsPanels('agent tools', { isAdmin: true })
-        .map(panel => panel.id)
-        .join(',') === 'tools',
+      && context.searchSettingsPanels('agent tools', { isAdmin: true }).length === 0,
   );
 
   check(
@@ -529,7 +530,7 @@ function moduleSource(relativePath) {
   });
 
   check(
-    'Settings finder does not expose admin-only results to non-admin users',
+    'Settings finder shows an empty-state for a query matching nothing in Settings (Agent Tools moved out)',
     fixture.searchResults.querySelectorAll('[data-settings-search-result]').length === 0
       && fixture.searchResults.textContent !== '',
   );
@@ -670,19 +671,24 @@ function moduleSource(relativePath) {
   let activated = null;
   let delegated = null;
   context.bindSettingsNavigation(fixture.modal, {
-    openAdminTab(tab) { delegated = tab; return tab === 'system'; },
+    openAdminTab(tab) { delegated = tab; return tab === 'services'; },
     onPanelActivated(tab) { activated = tab; },
   });
-  fixture.services.button.click();
+  // 'ai' is a plain (non-admin-controller) tab — clicking it must never even
+  // attempt delegation.
+  fixture.ai.button.click();
   check(
     'normal navigation activates locally and notifies the coordinator',
-    activated === 'services' && fixture.services.button.classList.contains('active'),
+    activated === 'ai' && delegated === null && fixture.ai.button.classList.contains('active'),
   );
   activated = null;
-  fixture.system.button.click();
+  // 'services' stays admin-controller-tagged (self-service data loading owned
+  // by admin.js) even though it's no longer admin-only — clicking it should
+  // still delegate exactly like the old Users/Tools/System tabs did.
+  fixture.services.button.click();
   check(
     'admin navigation delegates without performing a second local activation',
-    delegated === 'system' && activated === null && fixture.services.button.classList.contains('active'),
+    delegated === 'services' && activated === null && fixture.ai.button.classList.contains('active'),
   );
 
   context.bindSettingsDrag(fixture.modal);

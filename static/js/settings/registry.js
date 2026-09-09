@@ -35,11 +35,6 @@ export const SETTINGS_GROUPS = Object.freeze([
     id: 'account',
     label: 'Account',
   }),
-  defineGroup({
-    id: 'administration',
-    label: 'Administration',
-    adminOnly: true,
-  }),
 ]);
 
 // Order intentionally mirrors the existing Settings sidebar.
@@ -109,31 +104,6 @@ export const SETTINGS_PANELS = Object.freeze([
     label: 'Account',
     group: 'account',
     keywords: ['account', 'password', 'logout'],
-  }),
-
-  definePanel({
-    id: 'tools',
-    label: 'Agent Tools',
-    group: 'administration',
-    controller: 'admin',
-    adminOnly: true,
-    keywords: ['agent', 'tools'],
-  }),
-  definePanel({
-    id: 'users',
-    label: 'Users',
-    group: 'administration',
-    controller: 'admin',
-    adminOnly: true,
-    keywords: ['users', 'accounts', 'admin'],
-  }),
-  definePanel({
-    id: 'system',
-    label: 'System',
-    group: 'administration',
-    controller: 'admin',
-    adminOnly: true,
-    keywords: ['system', 'admin', 'server'],
   }),
 ]);
 

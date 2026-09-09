@@ -7,8 +7,14 @@ import { providerLogo, providerLogoFromUrl } from './providers.js';
 import { sortModelObjects } from './modelSort.js';
 import { PROVIDER_DEVICE_FLOWS, formatDeviceFlowError, runProviderDeviceFlow } from './providerDeviceFlow.js';
 import { getSettings, getTools, invalidateSettings, invalidateTools } from './appConfig.js';
+import { bindSettingsNavigation, activateSettingsPanel } from './settings/navigation.js';
+import { bindSettingsDrag, bindSettingsClose, showSettingsModal, hideSettingsModal } from './settings/lifecycle.js';
 
 let initialized = false;
+// Legacy self-service tabs (Add Models / Added Models / Integrations) stay in
+// the regular Settings modal for every user — this flag tracks their data
+// loading independently of the standalone Admin modal's own init state.
+let legacyInitialized = false;
 let modalEl = null;
 // When the user adds an endpoint, store its id so the next render of
 // the endpoints list can flash a glow on that row. Cleared once the
@@ -3145,48 +3151,187 @@ function initLogsView() {
 }
 
 /* ═══════════════════════════════════════════
-   INIT & REFRESH
+   LEGACY SETTINGS-HOSTED TABS
+   Add Models / Added Models / Integrations stay inside the regular Settings
+   modal for every user (self-service, not admin-gated) — this module still
+   owns their data loading, unchanged from before the Admin modal existed.
    ═══════════════════════════════════════════ */
-function initAll() {
-  modalEl = el('settings-modal');
+function initLegacySettingsTabs() {
+  const inits = [initEndpointForm, initMcpForm, initCalDAV, () => settingsModule.initIntegrations()];
+  for (const fn of inits) {
+    try { fn(); } catch (e) { console.error('Admin (legacy) init error in', fn.name || 'anonymous', e); }
+  }
+  legacyInitialized = true;
+  refreshLegacySettingsTabs();
+}
+
+function refreshLegacySettingsTabs() {
+  loadEndpoints();
+  loadMcpServers();
+  loadTokens();
+}
+
+/* ═══════════════════════════════════════════
+   GPU USAGE TAB
+   ═══════════════════════════════════════════ */
+let gpuPollInterval = null;
+let isGpuPolling = false;
+
+function renderGpuUsage(data) {
+  const list = el('adm-gpuList');
+  if (!list) return;
+  const gpus = data?.gpus || [];
+  if (!data?.live_supported) {
+    list.innerHTML = `<div class="admin-empty">Live GPU usage isn't supported on this host${data?.reason ? ': ' + esc(data.reason) : ''}.</div>`;
+    return;
+  }
+  if (!gpus.length) { list.innerHTML = '<div class="admin-empty">No GPU data available</div>'; return; }
+  list.innerHTML = gpus.map(g => `
+    <div class="admin-user-row">
+      <div>
+        <div class="admin-toggle-label">${esc(g.name)} <span style="opacity:0.5">#${g.index}</span></div>
+        <div class="admin-toggle-sub">${g.utilization_pct}% util · ${g.memory_used_gb}/${g.memory_total_gb} GB · ${g.temperature_c}°C</div>
+        ${g.active_models && g.active_models.length ? `<div class="admin-toggle-sub">Likely active: ${g.active_models.map(esc).join(', ')}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function loadGpuUsage() {
+  const list = el('adm-gpuList');
+  if (!list) return;
+  try {
+    const res = await fetch('/api/admin/gpu-usage', { credentials: 'same-origin' });
+    renderGpuUsage(await res.json());
+  } catch (e) {
+    list.innerHTML = '<div class="admin-error">Failed to load GPU usage</div>';
+  }
+}
+
+function startGpuPolling() {
+  if (isGpuPolling) return;
+  isGpuPolling = true;
+  loadGpuUsage();
+  gpuPollInterval = setInterval(() => {
+    const panel = modalEl && modalEl.querySelector('[data-settings-panel="gpu-usage"]');
+    if (!modalEl || modalEl.classList.contains('hidden') || !panel || panel.classList.contains('hidden')) {
+      stopGpuPolling();
+      return;
+    }
+    loadGpuUsage();
+  }, 4000);
+}
+
+function stopGpuPolling() {
+  if (!isGpuPolling) return;
+  isGpuPolling = false;
+  if (gpuPollInterval) { clearInterval(gpuPollInterval); gpuPollInterval = null; }
+}
+
+/* ═══════════════════════════════════════════
+   USER DASHBOARD TAB
+   ═══════════════════════════════════════════ */
+async function loadUserDashboard() {
+  const list = el('adm-userDashList');
+  if (!list) return;
+  list.innerHTML = '<div class="admin-empty">Loading...</div>';
+  try {
+    const res = await fetch('/api/admin/user-activity', { credentials: 'same-origin' });
+    const data = await res.json();
+    const rows = data.users || [];
+    if (!rows.length) { list.innerHTML = '<div class="admin-empty">No activity yet</div>'; return; }
+    list.innerHTML = rows.map(r => `
+      <div class="admin-user-row">
+        <div>
+          <div class="admin-toggle-label">${esc(r.username)}${r.is_admin ? ' <span class="admin-badge">ADMIN</span>' : ''}</div>
+          <div class="admin-toggle-sub">${r.message_count} msgs · ${(r.input_tokens || 0) + (r.output_tokens || 0)} tokens · ${(r.models_used || []).map(m => esc(m.model)).join(', ') || 'no models yet'}</div>
+          <div class="admin-toggle-sub">Last active: ${r.last_active ? new Date(r.last_active).toLocaleString() : '—'}</div>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="admin-error">Failed to load user activity</div>';
+  }
+}
+
+function initUserDashboardTab() {
+  const btn = el('adm-userDashRefreshBtn');
+  if (btn) btn.addEventListener('click', loadUserDashboard);
+}
+
+/* ═══════════════════════════════════════════
+   STANDALONE ADMIN MODAL
+   Users / Agent Tools / System (moved out of Settings) + GPU Usage / User
+   Dashboard (new). Opened via the sidebar's admin-only button, not through
+   Settings navigation.
+   ═══════════════════════════════════════════ */
+const DEFAULT_ADMIN_TAB = 'users';
+const LEGACY_SETTINGS_TABS = new Set(['services', 'added-models', 'integrations']);
+
+function onAdminPanelActivated(tab) {
+  if (tab === 'gpu-usage') startGpuPolling(); else stopGpuPolling();
+  if (tab === 'user-dashboard') loadUserDashboard();
+}
+
+function initAdminModal() {
+  modalEl = el('admin-modal');
+  bindSettingsNavigation(modalEl, { onPanelActivated: onAdminPanelActivated });
+  bindSettingsClose(modalEl, { closeSettings: closeAdminModal });
+  bindSettingsDrag(modalEl);
   const inits = [
-    initSignupToggle, initShareDefaultsToggle, initAddUser, initEndpointForm, initMcpForm,
-    initCalDAV, initBackup, initDangerZone, initTokenForm, initLogsView,
-    () => settingsModule.initIntegrations()
+    initSignupToggle, initShareDefaultsToggle, initAddUser,
+    initBackup, initDangerZone, initTokenForm, initLogsView, initUserDashboardTab,
   ];
   for (const fn of inits) {
     try { fn(); } catch (e) { console.error('Admin init error in', fn.name || 'anonymous', e); }
   }
   initialized = true;
-  refreshAll();
+  refreshAdminModal();
 }
 
-function refreshAll() {
+function refreshAdminModal() {
   loadUsers();
-  loadEndpoints();
   loadBuiltinTools();
-  loadMcpServers();
-  loadTokens();
   loadLogs(false);
+}
+
+function closeAdminModal() {
+  stopLogsPolling();
+  stopGpuPolling();
+  hideSettingsModal(modalEl);
 }
 
 /* ═══════════════════════════════════════════
    PUBLIC API
    ═══════════════════════════════════════════ */
 export function _initData() {
-  if (!initialized) initAll();
-  else refreshAll();
+  // Settings.js's deep-link auto-init check calls this — scoped to the
+  // legacy self-service tabs, which are the only ones still reachable
+  // through Settings' own navigation.
+  if (!legacyInitialized) initLegacySettingsTabs();
+  else refreshLegacySettingsTabs();
 }
 
 export function open(tab) {
-  _initData();
-  settingsModule.open(tab || 'services');
+  const resolvedTab = tab || DEFAULT_ADMIN_TAB;
+  if (LEGACY_SETTINGS_TABS.has(resolvedTab)) {
+    _initData();
+    settingsModule.open(resolvedTab);
+    return;
+  }
+  if (!initialized) initAdminModal();
+  else refreshAdminModal();
+  showSettingsModal(modalEl);
+  activateSettingsPanel(modalEl, resolvedTab);
+  onAdminPanelActivated(resolvedTab);
 }
 
 export function close() {
-  stopLogsPolling();
-  settingsModule.close();
+  closeAdminModal();
 }
 
-const adminModule = { open, close, _initData, get _initialized() { return initialized; } };
+const adminModule = {
+  open,
+  close,
+  _initData,
+  get _initialized() { return legacyInitialized; },
+};
 export default adminModule;

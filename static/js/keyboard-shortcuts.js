@@ -97,6 +97,7 @@ export function initKeyboardShortcuts(modules) {
   // opens it (mirrors modalManager's _AUTO_WIRE, plus email's section title).
   const _WINDOW_TRIGGERS = {
     'settings-modal':         'user-bar-settings',
+    'admin-modal':            'user-bar-admin',
     'theme-modal':            'tool-theme-btn',
     'tasks-modal':            'tool-tasks-btn',
     'notes-panel':            'tool-notes-btn',

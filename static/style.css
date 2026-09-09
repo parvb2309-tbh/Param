@@ -586,6 +586,19 @@ body.bg-pattern-sparkles {
     }
 
 
+    .sidebar-admin-btn {
+      width: calc(100% - 24px);
+      margin: 0 12px 2px;
+      justify-content: flex-start;
+      gap: 8px;
+      font-size: 9.75px;
+      font-weight: 500;
+    }
+
+    .sidebar.hidden .sidebar-admin-btn {
+      display: none;
+    }
+
     .sidebar.hidden .sidebar-user-bar {
       display: none;
     }
@@ -5627,6 +5640,7 @@ body.bg-pattern-sparkles {
       #research-overlay,
       #theme-modal,
       #settings-modal,
+      #admin-modal,
       #email-lib-modal {
         left: calc(var(--icon-rail-w, 48px) + var(--sidebar-w, 0px));
         width: calc(100% - (var(--icon-rail-w, 48px) + var(--sidebar-w, 0px)));
@@ -7369,6 +7383,7 @@ pre { background: var(--code-bg, var(--hl-bg, #282c34)) !important; }
       #calendar-modal .modal-content,
       #memory-modal .memory-modal-content,
       #settings-modal .settings-modal-content,
+      #admin-modal .settings-modal-content,
       #email-lib-modal .modal-content,
       #doclib-modal .doclib-modal-content {
         max-height: 100vh !important;
@@ -23624,8 +23639,8 @@ body.gallery-selecting .gallery-dl-btn,
    drag/dock code clears this margin (sets inline margin:0) the moment a window
    is dragged, so moving the window still works exactly as before. */
 @media (min-width: 769px) {
-  #settings-modal { align-items: flex-start; }
-  #settings-modal .settings-modal-content { margin-top: 7vh; }
+  #settings-modal, #admin-modal { align-items: flex-start; }
+  #settings-modal .settings-modal-content, #admin-modal .settings-modal-content { margin-top: 7vh; }
 }
 
 .settings-modal-content .modal-header {
@@ -23640,12 +23655,14 @@ body.gallery-selecting .gallery-dl-btn,
 }
 
 .settings-modal-content[style*="height"],
-#settings-modal.modal-right-docked .settings-modal-content {
+#settings-modal.modal-right-docked .settings-modal-content,
+#admin-modal.modal-right-docked .settings-modal-content {
   overflow: hidden;
 }
 
 .settings-modal-content[style*="height"] .settings-layout,
-#settings-modal.modal-right-docked .settings-layout {
+#settings-modal.modal-right-docked .settings-layout,
+#admin-modal.modal-right-docked .settings-layout {
   flex: 1 1 0;
   min-height: 0;
   max-height: none;
@@ -23653,8 +23670,10 @@ body.gallery-selecting .gallery-dl-btn,
 
 .settings-modal-content[style*="height"] .settings-panels,
 #settings-modal.modal-right-docked .settings-panels,
+#admin-modal.modal-right-docked .settings-panels,
 .settings-modal-content[style*="height"] .settings-sidebar,
-#settings-modal.modal-right-docked .settings-sidebar {
+#settings-modal.modal-right-docked .settings-sidebar,
+#admin-modal.modal-right-docked .settings-sidebar {
   min-height: 0;
 }
 

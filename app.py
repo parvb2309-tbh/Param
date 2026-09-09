@@ -690,6 +690,10 @@ app.include_router(setup_session_routes(
 from routes.admin_wipe.admin_wipe_routes import setup_admin_wipe_routes
 app.include_router(setup_admin_wipe_routes(session_manager))
 
+# Admin dashboard — live GPU usage + per-user activity metadata (Admin panel)
+from routes.admin_dashboard_routes import setup_admin_dashboard_routes
+app.include_router(setup_admin_dashboard_routes(session_manager))
+
 # Memory
 from routes.memory.memory_routes import setup_memory_routes
 memory_router = setup_memory_routes(memory_manager, session_manager, memory_vector=memory_vector)

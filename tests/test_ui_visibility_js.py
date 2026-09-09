@@ -45,6 +45,8 @@ EMAIL = "#email-section, #rail-email"
 TOOLS = "#tools-section"
 CAL = "#tool-calendar-btn, #rail-calendar"
 COMPARE = "#tool-compare-btn, #rail-compare"
+COOKBOOK = "#tool-cookbook-btn, #rail-cookbook"
+GALLERY = "#tool-gallery-btn, #rail-gallery"
 LIB = "#tool-library-btn, #rail-archive"
 RESEARCH = "#tool-research-btn, #rail-research"
 NEWCHAT = "#rail-new-session"
@@ -83,7 +85,11 @@ def test_every_customizable_tab_pairs_its_rail_button():
 
 def test_defaults_everything_visible_except_default_off():
     m = _resolve({})
-    assert m[EMAIL] is True
+    # Cookbook, Gallery, and Email declutter the home sidebar by default —
+    # each still has a per-user Appearance checkbox to turn it back on.
+    assert m[EMAIL] is False
+    assert m[COOKBOOK] is False
+    assert m[GALLERY] is False
     assert m[TOOLS] is True
     assert m[CAL] is True
     assert m[NEWCHAT] is True
@@ -95,6 +101,19 @@ def test_email_off_hides_email_and_its_rail_only():
     assert m[EMAIL] is False
     assert m[CAL] is True
     assert m[TOOLS] is True
+
+
+def test_email_on_shows_email_despite_default_off():
+    # Explicit true overrides the new default-off — the per-user Appearance
+    # checkbox must still be able to bring Email back.
+    m = _resolve({"email-section": True})
+    assert m[EMAIL] is True
+
+
+def test_cookbook_and_gallery_on_override_default_off():
+    m = _resolve({"tool-cookbook": True, "tool-gallery": True})
+    assert m[COOKBOOK] is True
+    assert m[GALLERY] is True
 
 
 def test_tool_off_hides_its_rail_launcher():
@@ -110,11 +129,14 @@ def test_library_off_hides_archive_rail():
 
 
 def test_tools_off_hides_every_tool_rail_but_not_email():
-    m = _resolve({"tools-section": False})
+    # Email is a top-level section, not a "tool-*" entry, so it's independent
+    # of the Tools section toggle — explicit true isolates that claim from
+    # email's own (now default-off) baseline visibility.
+    m = _resolve({"tools-section": False, "email-section": True})
     assert m[TOOLS] is False
     for sel in (CAL, COMPARE, LIB, RESEARCH):
         assert m[sel] is False, sel
-    assert m[EMAIL] is True  # email is independent of the Tools section
+    assert m[EMAIL] is True
 
 
 def test_tools_off_overrides_per_tool_on():

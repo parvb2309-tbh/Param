@@ -129,7 +129,7 @@ function _zoneForContent(content, x, y) {
   // Settings has a dense two-column layout; the full-height sidebar-style dock
   // crushes it. Let it tile only into the normal right half, where the nav can
   // flip to top tabs via CSS when the window gets narrow.
-  if (modal && modal.id === 'settings-modal' && zone.name !== 'right-half') return null;
+  if (modal && (modal.id === 'settings-modal' || modal.id === 'admin-modal') && zone.name !== 'right-half') return null;
   if (modal && (modal.id === 'cookbook-modal'
       || modal.id === 'theme-modal')
       && zone.name !== 'fullscreen') return null;
@@ -387,7 +387,7 @@ export function snapModalToZone(modal, zone) {
   if (!modal || !zone) return;
   const content = modal.querySelector ? (modal.querySelector('.modal-content, .research-pane') || modal) : modal;
   if (!content) return;
-  if (modal.id === 'settings-modal' && zone.name !== 'right-half') return;
+  if ((modal.id === 'settings-modal' || modal.id === 'admin-modal') && zone.name !== 'right-half') return;
   _applySnap(content, zone.rect, zone.name);
 }
 

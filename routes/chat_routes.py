@@ -688,6 +688,15 @@ def _reconcile_selected_route_from_request(
     ):
         return False
 
+    try:
+        from src.integrity_monitor import monitor as _integrity_monitor
+        _integrity_monitor.record(
+            "model_switch",
+            {"session_id": session_id, "from_model": getattr(sess, "model", "") or "", "to_model": selected_model},
+        )
+    except Exception:
+        pass
+
     sess.model = selected_model
     sess.endpoint_url = endpoint_url
     sess.headers = headers or {}
@@ -980,6 +989,16 @@ def setup_chat_routes(
             form_data.get("tool_approval_decision")
             or (body or {}).get("tool_approval_decision")
         )
+        if not incognito and message and not tool_approval_id:
+            try:
+                from src.integrity_monitor import monitor as _integrity_monitor
+                _integrity_monitor.record(
+                    "chat_message_sent",
+                    {"session_id": session, "chars": len(str(message)), "mode": chat_mode or "chat"},
+                )
+            except Exception:
+                pass
+
         exact_tool_approval = None
         pending_tool_approval = None
         retired_tool_approval_taint = False

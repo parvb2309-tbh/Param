@@ -2677,6 +2677,15 @@ async def _stream_llm_inner(url: str, model: str, messages: List[Dict], temperat
     note_model_activity(target_url, model)
     degenerate_guard = _DegenerateStreamGuard(model)
 
+    try:
+        from src.integrity_monitor import monitor as _integrity_monitor
+        _integrity_monitor.record(
+            "network_call",
+            {"host": target_url, "model": model, "provider": provider},
+        )
+    except Exception:
+        pass
+
     # ── ChatGPT Subscription / Codex Responses streaming ──
     if provider == "chatgpt-subscription":
         event_name = ""

@@ -641,7 +641,7 @@ body.bg-pattern-sparkles {
       min-height: 24px;
     }
     .sidebar-brand-title {
-      font-size: 1rem;
+      font-size: 1.25rem;
       font-weight: 600;
       line-height: 1.35;
       color: var(--brand-color, var(--red));
@@ -787,12 +787,12 @@ body.bg-pattern-sparkles {
     }
     .icon-rail-btn {
       position: relative;
-      width: 34px;
-      height: 34px;
+      width: 40px;
+      height: 40px;
       border: none;
       background: transparent;
       color: var(--accent, var(--red));
-      font-size: 16px;
+      font-size: 19px;
       border-radius: 6px;
       cursor: pointer;
       display: flex;
@@ -2016,7 +2016,7 @@ body.bg-pattern-sparkles {
     }
     @media (max-height: 500px) {
       #welcome-screen { top: 22%; }
-      #welcome-screen .welcome-name { font-size: 1.4rem; margin-bottom: 0; }
+      #welcome-screen .welcome-name { font-size: 2.2rem; margin-bottom: 0; }
       #welcome-screen .welcome-sub { opacity: 0; max-height: 0; margin: 0; }
       .incognito-btn { margin-top: 4px !important; }
     }
@@ -2036,7 +2036,7 @@ body.bg-pattern-sparkles {
       #welcome-screen .incognito-btn { margin-top: 6px; }
     }
     #welcome-screen .welcome-name {
-      font-size:2.2rem;
+      font-size:3.4rem;
       font-weight:700;
       background: linear-gradient(135deg, var(--brand-color, var(--red)), color-mix(in srgb, var(--brand-color, var(--red)) 60%, var(--fg)));
       -webkit-background-clip: text;
@@ -2046,8 +2046,8 @@ body.bg-pattern-sparkles {
       margin-bottom:10px;
     }
     .welcome-boat {
-      width: 1.8rem;
-      height: 1.8rem;
+      width: 2.6rem;
+      height: 2.6rem;
       margin-right: 0.4rem;
       vertical-align: -0.15em;
       color: var(--brand-color, var(--red));
@@ -2122,7 +2122,7 @@ body.bg-pattern-sparkles {
       width: 100%;
     }
     @media (max-width:768px) {
-      #welcome-screen .welcome-name { font-size:1.8rem; }
+      #welcome-screen .welcome-name { font-size:2.9rem; }
       #welcome-screen .welcome-sub { font-size:0.8rem; }
       .chat-container.welcome-active .chat-input-bar {
         margin-bottom:0;
@@ -2235,7 +2235,7 @@ body.bg-pattern-sparkles {
       word-break: break-word;
       overflow-wrap: anywhere;
       line-height: 1.5;
-      font-size: 0.95em;
+      font-size: 1.05em;
       margin: 0;
       overflow: hidden;
       max-width: 100%;
@@ -2468,7 +2468,7 @@ body.bg-pattern-sparkles {
 	      background: var(--input-bg, var(--panel));
 	      border: 1px solid var(--input-border, var(--border));
 	      border-radius: 16px;
-	      padding: 10px 12px;
+	      padding: 12px 14px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -2582,10 +2582,10 @@ body.bg-pattern-sparkles {
       border: none;
       outline: none;
       resize: none;
-      font-size: 14px;
+      font-size: 16px;
       line-height: 1.5;
       color: var(--fg);
-      min-height: 24px;
+      min-height: 30px;
       max-height: 200px;
       padding: 0;
       font-family: inherit;
@@ -3235,6 +3235,15 @@ body.bg-pattern-sparkles {
       max-width: 120px;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .auto-model-toggle-btn {
+      margin-right: 4px;
+    }
+    .auto-model-toggle-btn.active {
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      color: var(--accent);
+      font-weight: 600;
     }
     .model-picker-btn svg {
       flex-shrink: 0;
@@ -4721,7 +4730,7 @@ body.bg-pattern-sparkles {
         min-height: 44px;
       }
       .sidebar-brand-title {
-        font-size: 1.2rem;
+        font-size: 1.4rem;
         left: 0 !important;
       }
       /* Sidebar inner — bigger spacing */
@@ -4822,8 +4831,8 @@ body.bg-pattern-sparkles {
         box-shadow: -2px 0 12px rgba(0,0,0,0.4);
       }
       /* Chat bubbles — AI stretches full width, user stays compact */
-      .msg { font-size: 0.85em; }
-      .msg .body { font-size: 0.9em; }
+      .msg { font-size: 0.95em; }
+      .msg .body { font-size: 1em; }
       .msg-user { max-width: 90% !important; margin-left: auto; margin-right: 4px; }
       .msg-ai, .agent-thread { width: 100% !important; max-width: 100% !important; margin: 8px 0; }
       /* Prevent inner scrollable elements from trapping vertical scroll */
@@ -8930,12 +8939,12 @@ button.hamburger {
 
 #message {
   flex: 1;
-  min-height: 34px;
-  max-height: 120px;
+  min-height: 40px;
+  max-height: 140px;
   resize: none;
-  font-size: 13px !important;
+  font-size: 15px !important;
   overflow-y: auto !important;
-  line-height: 1.4 !important;
+  line-height: 1.5 !important;
   font-family: inherit !important;
 }
 
@@ -14966,6 +14975,109 @@ body:has(.doc-version-panel:not(.hidden)) .hamburger-btn {
 }
 .admin-danger-card {
   border-color: color-mix(in srgb, var(--color-error) 27%, transparent);
+}
+
+/* Security / integrity monitor tab */
+.security-monitor-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.sm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.sm-badge.ok {
+  background: color-mix(in srgb, var(--color-success, #2ecc71) 15%, transparent);
+  color: var(--color-success, #2ecc71);
+}
+.sm-badge.bad {
+  background: color-mix(in srgb, var(--color-error) 15%, transparent);
+  color: var(--color-error);
+}
+.sm-badge-detail {
+  opacity: 0.6;
+}
+.sm-badge-detail code {
+  font-size: 11px;
+}
+.security-monitor-events {
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+.security-monitor-row {
+  display: grid;
+  grid-template-columns: 78px 120px 1fr 120px;
+  gap: 8px;
+  padding: 5px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  align-items: center;
+}
+.security-monitor-row.flagged {
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+}
+.sm-time, .sm-hash {
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+.sm-hash {
+  font-family: monospace;
+  font-size: 11px;
+}
+.sm-type {
+  font-weight: 600;
+}
+.sm-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Admin network-monitor charts (hand-rolled, no charting library) */
+.monitor-chart {
+  font-size: 12px;
+}
+.monitor-bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.monitor-bar-label {
+  opacity: 0.7;
+}
+.monitor-bar-track {
+  height: 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  overflow: hidden;
+}
+.monitor-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+.monitor-bar-count {
+  text-align: right;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.monitor-line-svg {
+  width: 100%;
+  height: 90px;
+  color: var(--fg);
+}
+.monitor-line-caption {
+  opacity: 0.45;
+  font-size: 11px;
+  margin-top: 4px;
 }
 
 /* Toggle switch */
@@ -23704,12 +23816,12 @@ body.gallery-selecting .gallery-dl-btn,
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: none;
   background: none;
   color: color-mix(in srgb, var(--fg) 60%, transparent);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   border-radius: 6px;

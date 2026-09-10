@@ -7,7 +7,7 @@
 //   - Other static assets (images/fonts/libs): cache-first with bg refresh.
 //   - API / non-GET: never cached.
 // Bump CACHE_NAME whenever the precache list or SW logic changes.
-const CACHE_NAME = 'odysseus-v380-shared-config-image-editor-lazy-katex-mermaid';
+const CACHE_NAME = 'odysseus-v382-navigate-network-first';
 
 // KaTeX resolves these from its own stylesheet, so caching the CSS without them
 // gives offline math fallback glyphs instead of proper typesetting.
@@ -189,20 +189,24 @@ self.addEventListener('fetch', (e) => {
   // Never touch API calls or non-GET.
   if (url.pathname.startsWith('/api/') || e.request.method !== 'GET') return;
 
-  // HTML navigation: stale-while-revalidate the app shell — but ONLY for the
-  // SPA root. Other navigations (e.g. a deep-linked /static/*.html page) must
-  // go to the network/static handlers below; otherwise every navigation was
-  // served the app index, replacing the page the user actually asked for.
+  // HTML navigation: network-first for the SPA root — always try the network
+  // so index.html edits show up on a normal reload (same reasoning as the
+  // JS/CSS rule below), falling back to the cached shell only when offline.
+  // Was stale-while-revalidate, but that always served last-launch's cached
+  // HTML instantly and only refreshed the cache in the background, so any
+  // markup change needed two reloads to actually appear — confusing during
+  // active development. Other navigations (e.g. a deep-linked /static/*.html
+  // page) must go to the network/static handlers below; otherwise every
+  // navigation was served the app index, replacing the page the user asked for.
   if (e.request.mode === 'navigate' && url.pathname === '/') {
     e.respondWith(
-      caches.open(CACHE_NAME).then(async cache => {
-        const cached = await cache.match('/');
-        const network = fetch(e.request).then(res => {
-          if (res && res.ok) cache.put('/', res.clone());
-          return res;
-        }).catch(() => cached);
-        return cached || network;
-      })
+      fetch(e.request).then(res => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('/', copy));
+        }
+        return res;
+      }).catch(() => caches.open(CACHE_NAME).then(cache => cache.match('/')))
     );
     return;
   }

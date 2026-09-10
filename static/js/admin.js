@@ -9,6 +9,7 @@ import { PROVIDER_DEVICE_FLOWS, formatDeviceFlowError, runProviderDeviceFlow } f
 import { getSettings, getTools, invalidateSettings, invalidateTools } from './appConfig.js';
 import { bindSettingsNavigation, activateSettingsPanel } from './settings/navigation.js';
 import { bindSettingsDrag, bindSettingsClose, showSettingsModal, hideSettingsModal } from './settings/lifecycle.js';
+import { startNetworkMonitorPolling, stopNetworkMonitorPolling } from './adminNetworkMonitor.js';
 
 let initialized = false;
 // Legacy self-service tabs (Add Models / Added Models / Integrations) stay in
@@ -3269,6 +3270,7 @@ const LEGACY_SETTINGS_TABS = new Set(['services', 'added-models', 'integrations'
 function onAdminPanelActivated(tab) {
   if (tab === 'gpu-usage') startGpuPolling(); else stopGpuPolling();
   if (tab === 'user-dashboard') loadUserDashboard();
+  if (tab === 'monitoring') startNetworkMonitorPolling(); else stopNetworkMonitorPolling();
 }
 
 function initAdminModal() {

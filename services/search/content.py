@@ -48,6 +48,11 @@ _CappedFetch = _outbound_fetch._CappedFetch
 
 
 def _get_public_url(url, headers, timeout, max_redirects=5, max_bytes=None):
+    try:
+        from src.integrity_monitor import monitor as _integrity_monitor
+        _integrity_monitor.record("network_call", {"host": url, "kind": "web_fetch"})
+    except Exception:
+        pass
     return _outbound_fetch._get_public_url(
         url,
         headers=headers,

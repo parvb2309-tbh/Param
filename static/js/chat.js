@@ -21,6 +21,7 @@ import * as emailInbox from './emailInbox.js?v=20260815approvalsave1';
 import codeRunnerModule from './codeRunner.js';
 import slashCommands, { initSlashCommands, isCommand, handleSlashCommand, handleSetupInput, handleSetupWizard, typewriterInto } from './slashCommands.js?v=20260815approvalsave1';
 import createResearchSynapse from './researchSynapse.js';
+import * as autoModelRouter from './promptModelRouter.js';
 import { createStreamRenderer } from './streamingRenderer.js';
 import { wireArrowUpRecall, getUserMessagesFromChatHistory } from './composerArrowUpRecall.js?v=20260714promptrecall';
 import {
@@ -1826,6 +1827,23 @@ import { loadPanel } from './panels.js';
       let _finalMsgWithInject = finalMsg;
       if (_inject.prefix) _finalMsgWithInject = _inject.prefix + ' ' + _finalMsgWithInject;
       if (_inject.suffix) _finalMsgWithInject = _finalMsgWithInject + ' ' + _inject.suffix;
+
+      // Auto model mode: re-pick the best available model for THIS message's
+      // content, overriding whatever route was resolved above. Runs per-send
+      // since the right model can differ message to message.
+      if (!approvalForSend && autoModelRouter.isAutoModelEnabled()) {
+        try {
+          const _autoPick = autoModelRouter.chooseModelForPrompt(_finalMsgWithInject, ids.length > 0);
+          if (_autoPick && _autoPick.mid) {
+            selectedRouteForSend.model = _autoPick.mid;
+            selectedRouteForSend.endpoint_url = _autoPick.url || '';
+            selectedRouteForSend.endpoint_id = _autoPick.endpointId || '';
+            selectedRouteForSend.source = 'auto';
+            const _label = document.getElementById('model-picker-label');
+            if (_label) _label.textContent = 'Auto → ' + (_autoPick.display || _autoPick.mid);
+          }
+        } catch (_) { /* fall back to the manually selected route */ }
+      }
 
       const fd = new FormData();
       fd.append('message', approvalForSend ? '' : _finalMsgWithInject);
@@ -5306,6 +5324,34 @@ import { loadPanel } from './panels.js';
    * Initialize event listeners
    */
   export function initListeners() {
+    // Auto model toggle — flips per-message automatic model selection on/off.
+    (function initAutoModelToggle() {
+      const btn = document.getElementById('auto-model-toggle-btn');
+      if (!btn) return;
+      const _refresh = () => {
+        const on = autoModelRouter.isAutoModelEnabled();
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (!on) {
+          const label = document.getElementById('model-picker-label');
+          if (label && label.textContent.indexOf('Auto') === 0) {
+            const dc = window.__odysseusDefaultChat;
+            label.textContent = dc && dc.model ? String(dc.model).split('/').pop() : 'Select model';
+          }
+        }
+      };
+      btn.addEventListener('click', () => {
+        autoModelRouter.setAutoModelEnabled(!autoModelRouter.isAutoModelEnabled());
+        _refresh();
+        if (uiModule && uiModule.showToast) {
+          uiModule.showToast(autoModelRouter.isAutoModelEnabled()
+            ? 'Auto model selection on — best model picked per message'
+            : 'Auto model selection off');
+        }
+      });
+      _refresh();
+    })();
+
     // Global event delegation for copy-code buttons
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('.copy-code');

@@ -740,6 +740,20 @@ async def execute_tool_block(
                 output[1],
                 getattr(block, "content", None),
             )
+        try:
+            from src.integrity_monitor import monitor as _integrity_monitor
+            _result = output[1] if isinstance(output, tuple) and len(output) > 1 else {}
+            _integrity_monitor.record(
+                "tool_executed",
+                {
+                    "session_id": session_id,
+                    "tool": getattr(block, "tool_type", None),
+                    "blocked": bool(isinstance(_result, dict) and _result.get("blocked")),
+                    "exit_code": _result.get("exit_code") if isinstance(_result, dict) else None,
+                },
+            )
+        except Exception:
+            pass
         return output
     finally:
         _active_workspace.reset(token)

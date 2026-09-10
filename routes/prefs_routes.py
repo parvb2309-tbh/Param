@@ -120,6 +120,11 @@ def setup_prefs_routes():
         prefs = _load_for_user(user)
         prefs[key] = body.get("value")
         _save_for_user(user, prefs)
+        try:
+            from src.integrity_monitor import monitor as _integrity_monitor
+            _integrity_monitor.record("settings_changed", {"key": key, "user": user or "default"})
+        except Exception:
+            pass
         return {"key": key, "value": prefs[key]}
 
     return router

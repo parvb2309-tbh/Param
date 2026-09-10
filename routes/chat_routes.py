@@ -1331,9 +1331,14 @@ def setup_chat_routes(
             session_id=session,
             preset_id=preset_id,
             att_ids=att_ids,
-            use_web=use_web,
+            # Use _search_enabled (combines allow_web_search + use_web toggles) so
+            # pre-search context injection fires for both the agent web toggle and the
+            # chat-mode toggle. This provides a fallback for local/small models that
+            # cannot use native tool-call web_search.
+            use_web=_search_enabled or use_web,
             use_rag=use_rag,
             time_filter=time_filter,
+
             incognito=incognito,
             no_memory=no_memory,
             search_context=search_context,

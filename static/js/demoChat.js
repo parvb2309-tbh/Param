@@ -343,7 +343,7 @@ OK (All concurrency and thread-safety tests passed)`;
 }
 
 /**
- * Demo 3: MRPL (Ministry of Petroleum and Refinery) Operations & Supervisor Tool Approval
+ * Demo 3: MRPL (Mangalore Refinery and Petrochemicals Limited) Operations & Supervisor Tool Approval
  */
 export function renderMRPLDemoChat(force = false) {
   const box = document.getElementById('chat-history');
@@ -351,12 +351,12 @@ export function renderMRPLDemoChat(force = false) {
 
   const realMsgs = box.querySelectorAll('.msg:not([data-demo]):not([data-demo="true"])');
   if (!force && realMsgs.length > 0) return;
-  if (!force && box.querySelector('[data-demo="mrpl"]')) return;
+  if (!force && (box.querySelector('[data-demo="mrpl"]') || box.querySelector('[data-demo-type="mrpl"]'))) return;
 
   box.innerHTML = '';
 
   // 1. User Prompt representing a high-consequence refinery operations challenge
-  const userContent = '[MRPL Alert CDU-4] Incoming crude batch "Mangalore Blend #09" has sulfur content surging to 3.85 wt% (nominal limit: 2.20 wt%). Column 04 overhead temperature is spiking at +3.2°C/min (currently 168.4°C). Run SCADA unit telemetry diagnostics, calculate emergency bypass parameters, and prepare valve actuation setpoint on Control Valve CV-402 to avert coking and column shutdown.';
+  const userContent = '[MRPL Alert CDU-4] At Mangalore Refinery and Petrochemicals Limited (MRPL), incoming crude batch "Mangalore Blend #09" has sulfur content surging to 3.85 wt% (nominal limit: 2.20 wt%). Column 04 overhead temperature is spiking at +3.2°C/min (currently 168.4°C). Run SCADA unit telemetry diagnostics, calculate emergency bypass parameters, and prepare valve actuation setpoint on Control Valve CV-402 to avert coking and column shutdown.';
 
   const userMeta = {
     timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
@@ -366,8 +366,9 @@ export function renderMRPLDemoChat(force = false) {
   chatRenderer.addMessage('user', userContent, null, userMeta);
 
   // 2. SCADA Telemetry & Kinetics Diagnostic Outputs
-  const scadaOutput = `[MRPL DCS SCADA INTERFACE - UNIT-4 CRUDE DISTILLATION]
+  const scadaOutput = `[MRPL DCS SCADA INTERFACE - UNIT-4 CRUDE DISTILLATION - MANGALORE]
 Connection: SECURE MODBUS/TCP (10.14.88.22:502) - Status: CONNECTED
+Refinery Facility: Mangalore Refinery and Petrochemicals Limited (MRPL Kuthethoor)
 Telemetry Snapshot @ 2026-09-11 21:10:45 IST:
 - TI_168 (Column Overhead Temp)  : 168.4 °C [HIGH-HIGH TRIP: 170.0 °C]
 - PI_402 (Desalter Outlet Press) : 18.4 bar [NOMINAL: 16-20 bar]
@@ -378,7 +379,7 @@ Telemetry Snapshot @ 2026-09-11 21:10:45 IST:
 Diagnostic Verdict: Severe high-sulfur crude excursion causing rapid thermal cracking & tray fouling in Column 04 overhead. Immediate quench bypass required.`;
 
   const kineticsOutput = `[MRPL KINETICS & HYDRAULIC REFLUX OPTIMIZER]
-Kinetic Simulation Results (Model: MRPL-Refinery-Opt v4.2):
+Kinetic Simulation Results (Model: MRPL-Refinery-Opt v4.2 - Mangalore Refinery):
 - Target Overhead Temperature : 153.0 °C (Margin: -15.4 °C below threshold)
 - Required Quench Divert Flow : 14,715 bpd (22.5% of total feed) to Exchanger Bank B
 - Recommended CV-402 Setpoint : 70.5% (+22.5% step increase from 48.0%)
@@ -387,7 +388,7 @@ Kinetic Simulation Results (Model: MRPL-Refinery-Opt v4.2):
 - Economic Impact Mitigation  : Averts unscheduled shutdown & catalyst replacement (~₹3.4 Crore / $410,000)
 - Safety Gate                  : OISD-169 SIL-3 Interlock ACTIVE. Hardware setpoint write locked pending Supervisor approval.`;
 
-  const assistantInitialText = `Initiating MRPL Refinery Diagnostic & Safety Response Protocol for **Unit-4 Crude Distillation Unit (CDU/ADU)** at the Mangalore Refinery Complex.
+  const assistantInitialText = `Initiating MRPL Refinery Diagnostic & Safety Response Protocol for **Unit-4 Crude Distillation Unit (CDU/ADU)** at **Mangalore Refinery and Petrochemicals Limited (MRPL)**.
 
 ### Diagnostic Plan:
 1. **SCADA Diagnostics**: Query real-time Modbus telemetry for Column 04 overhead temperature, desalter differential pressure, and crude sulfur content.
@@ -431,15 +432,16 @@ Kinetic Simulation Results (Model: MRPL-Refinery-Opt v4.2):
   chatRenderer.addMessage('assistant', null, 'qwen3-vl:4b-instruct', assistantMeta);
 
   box.querySelectorAll('.msg, .agent-thread').forEach(el => {
-    el.dataset.demo = 'mrpl';
+    el.dataset.demo = 'true';
+    el.dataset.demoType = 'mrpl';
   });
 
   // Open both tool nodes so telemetry and kinetics calculation are visible
   const nodes = box.querySelectorAll('.agent-thread-node');
   nodes.forEach(node => {
     node.classList.add('open');
-    const details = node.querySelector('details');
-    if (details) details.setAttribute('open', '');
+    const details = node.querySelectorAll('details');
+    details.forEach(d => d.setAttribute('open', ''));
   });
 
   // 3. Render the interactive Tool Approval Card asking for approval from the supervisor
@@ -449,14 +451,14 @@ Kinetic Simulation Results (Model: MRPL-Refinery-Opt v4.2):
     question: '⚠️ MRPL Safety Interlock (SIL-3) — Shift Supervisor Authorization Required:\nAuthorize DCS setpoint override on Control Valve CV-402 (Unit-4 CDU Quench Bypass to 70.5%) and Hydrogen Treat-Gas boost (+75 Nm³/m³)?',
     action: {
       tool: 'mrpl_dcs.dispatch_setpoint_override',
-      content: 'UNIT: CDU-04 (Mangalore Refinery Complex)\nTAG: CV-402.SP_OUT = 70.5% (Transit: 48.0% -> 70.5%)\nH2_BOOST: 395 Nm³/m³ (+75 Nm³/m³)\nEFFECT: Diverts 14,715 bpd crude to Quench Bank B\nINTERLOCK: OISD-169 SIL-3 Override Protocol (15-min timeout)',
+      content: 'UNIT: CDU-04 (Mangalore Refinery and Petrochemicals Limited - MRPL Complex)\nTAG: CV-402.SP_OUT = 70.5% (Transit: 48.0% -> 70.5%)\nH2_BOOST: 395 Nm³/m³ (+75 Nm³/m³)\nEFFECT: Diverts 14,715 bpd crude to Quench Bank B\nINTERLOCK: OISD-169 SIL-3 Override Protocol (15-min timeout)',
       effects: [
-        'Dispatches real-time DCS setpoint override to Honeywell Experion controller',
+        'Dispatches real-time DCS setpoint override to Honeywell Experion controller at MRPL Kuthethoor site',
         'Modulates hydraulic bypass valve CV-402 to 70.5% open',
         'Suppresses high-temperature coking trip on Column 04 Overhead (168.4°C -> 153.2°C)',
         'Generates cryptographically stamped regulatory audit event in MRPL Central Historian'
       ],
-      workspace: 'MRPL Sector-4 Refinery Control Room (Mangalore)',
+      workspace: 'MRPL Sector-4 Refinery Control Room (Mangalore Refinery and Petrochemicals Limited)',
       digest: 'sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069'
     },
     options: [
@@ -489,7 +491,7 @@ Kinetic Simulation Results (Model: MRPL-Refinery-Opt v4.2):
   chatRenderer.hideWelcomeScreen();
 
   const metaEl = document.getElementById('current-meta');
-  if (metaEl) metaEl.textContent = 'Demo: MRPL Refinery Operations';
+  if (metaEl) metaEl.textContent = 'Demo: MRPL Refinery Supervisor Approval';
 
   box.scrollTop = 0;
 }
@@ -501,7 +503,8 @@ function handleMRPLApprovalDecision(result, box) {
   // 1. Insert resolution banner
   const resBanner = document.createElement('div');
   resBanner.className = 'demo-approval-resolved ' + (isApproved ? 'approved' : 'denied');
-  resBanner.dataset.demo = 'mrpl';
+  resBanner.dataset.demo = 'true';
+  resBanner.dataset.demoType = 'mrpl';
   resBanner.innerHTML = `
     <span class="demo-approval-icon">${isApproved ? '✓' : '✗'}</span>
     <div>
@@ -601,20 +604,22 @@ The setpoint command on **Control Valve CV-402 was not dispatched**. In accordan
 
   // Tag newly created messages
   box.querySelectorAll('.msg, .agent-thread').forEach(el => {
-    el.dataset.demo = 'mrpl';
+    el.dataset.demo = 'true';
+    el.dataset.demoType = 'mrpl';
   });
 
   // Open any new tool nodes
   box.querySelectorAll('.agent-thread-node').forEach(node => {
     node.classList.add('open');
-    const details = node.querySelector('details');
-    if (details) details.setAttribute('open', '');
+    const details = node.querySelectorAll('details');
+    details.forEach(d => d.setAttribute('open', ''));
   });
 
   // Add Reset button bar so user can re-try the demo anytime
   const resetBar = document.createElement('div');
   resetBar.className = 'demo-approval-reset-bar';
-  resetBar.dataset.demo = 'mrpl';
+  resetBar.dataset.demo = 'true';
+  resetBar.dataset.demoType = 'mrpl';
   resetBar.innerHTML = `
     <button type="button" class="demo-approval-reset-btn" aria-label="Restart MRPL Demo">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

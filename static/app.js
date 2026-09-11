@@ -842,7 +842,7 @@ function initializeEventListeners() {
       console.warn('fresh chat stream detach failed:', e);
     }
     if (sessionModule) sessionModule.setCurrentSessionId(null);
-    if (window.location.hash === '#demo-chat' || window.location.hash === '#demo-code') {
+    if (window.location.hash === '#demo-chat' || window.location.hash === '#demo-code' || window.location.hash === '#demo-mrpl') {
       history.replaceState(null, '', window.location.pathname);
     }
     const metaEl = el('current-meta');

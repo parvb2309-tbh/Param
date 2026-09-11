@@ -980,6 +980,9 @@ function createDemoSessionItem(id = 'demo-chat', title = 'Demo Chat', type = 'pd
   if (type === 'code') {
     star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
     star.title = 'Demo: Industry Code & Sandbox Run';
+  } else if (type === 'mrpl') {
+    star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/></svg>';
+    star.title = 'Demo: Mangalore Refinery and Petrochemicals Limited (MRPL) — Supervisor Tool Approval';
   } else {
     star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
     star.title = 'Demo: PDF Analysis & File Summary';
@@ -989,7 +992,11 @@ function createDemoSessionItem(id = 'demo-chat', title = 'Demo Chat', type = 'pd
   const span = document.createElement('span');
   span.className = 'grow text-ellipsis';
   span.textContent = title;
-  span.title = type === 'code' ? 'Demo: Industry Code & Sandbox Run' : 'Demo: PDF Analysis & File Summary';
+  span.title = type === 'code'
+    ? 'Demo: Industry Code & Sandbox Run'
+    : (type === 'mrpl'
+        ? 'Demo: Mangalore Refinery and Petrochemicals Limited (MRPL) — Supervisor Tool Approval'
+        : 'Demo: PDF Analysis & File Summary');
   div.appendChild(span);
 
   const badge = document.createElement('span');
@@ -1148,6 +1155,7 @@ function _renderSessionListImpl() {
   // Always include the Demo Chat items at the top of the Chats list
   _frag.appendChild(createDemoSessionItem('demo-chat', 'Demo: PDF Analysis', 'pdf'));
   _frag.appendChild(createDemoSessionItem('demo-code', 'Demo: Code & Sandbox', 'code'));
+  _frag.appendChild(createDemoSessionItem('demo-mrpl', 'Demo: MRPL Refinery Approval', 'mrpl'));
 
   // ── Flat sort modes: ignore folders, show one ordered list. ──
   // Folders are only shown when _sortMode === 'group' (or null/empty
@@ -1754,11 +1762,9 @@ export async function loadSessions() {
       demoBtn._demoWired = true;
       demoBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (currentSessionId === 'demo-chat') {
-          selectSession('demo-code');
-        } else {
-          selectSession('demo-chat');
-        }
+        const demoOrder = ['demo-chat', 'demo-code', 'demo-mrpl'];
+        const nextIndex = (demoOrder.indexOf(currentSessionId) + 1) % demoOrder.length;
+        selectSession(demoOrder[nextIndex >= 0 ? nextIndex : 0]);
       });
     }
 
@@ -1783,7 +1789,7 @@ export async function loadSessions() {
     // If the persisted lastSessionId points to a transient session (legacy
     // state from before the persistence-guard was added) or demo chat, drop it.
     if (savedId) {
-      if (savedId === 'demo-chat' || savedId === 'demo-code') {
+      if (savedId === 'demo-chat' || savedId === 'demo-code' || savedId === 'demo-mrpl') {
         Storage.remove('lastSessionId');
         savedId = null;
       } else {
@@ -1802,7 +1808,7 @@ export async function loadSessions() {
       // completions call loadSessions() later; without this guard that reload
       // sees no current session and auto-selects the previous chat.
       targetId = null;
-    } else if (hashId && (hashId === 'demo-chat' || hashId === 'demo-code' || activeSessions.some(s => s.id === hashId))) {
+    } else if (hashId && (hashId === 'demo-chat' || hashId === 'demo-code' || hashId === 'demo-mrpl' || activeSessions.some(s => s.id === hashId))) {
       targetId = hashId;
     } else if (currentSessionId && activeSessions.some(s => s.id === currentSessionId)) {
       targetId = currentSessionId;
@@ -1897,7 +1903,7 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     window.compareModule.deactivate(true);
     return; // deactivate does a page reload
   }
-  if (id === 'demo-chat' || id === 'demo-code') {
+  if (id === 'demo-chat' || id === 'demo-code' || id === 'demo-mrpl') {
     currentSessionId = id;
     try { window.__paramLastSelectedSessionId = id; } catch (_) {}
     if (window.location.hash !== '#' + id) {
@@ -1911,7 +1917,13 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     }
     const metaEl = document.getElementById('current-meta');
     if (metaEl) {
-      metaEl.textContent = id === 'demo-code' ? 'Demo: Code & Sandbox Run' : 'Demo: PDF Key Findings';
+      if (id === 'demo-mrpl') {
+        metaEl.textContent = 'Demo: MRPL Refinery Supervisor Approval';
+      } else if (id === 'demo-code') {
+        metaEl.textContent = 'Demo: Code & Sandbox Run';
+      } else {
+        metaEl.textContent = 'Demo: PDF Key Findings';
+      }
     }
 
     document.querySelectorAll('.session-item.active, .session-item.active-session').forEach(el => el.classList.remove('active', 'active-session'));
@@ -1920,7 +1932,10 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     if (window.chatRenderer && window.chatRenderer.hideWelcomeScreen) {
       window.chatRenderer.hideWelcomeScreen();
     }
-    if (id === 'demo-code') {
+    if (id === 'demo-mrpl') {
+      const demoMod = await import('./demoChat.js');
+      demoMod.renderMRPLDemoChat(true);
+    } else if (id === 'demo-code') {
       try {
         const codeMod = await import('./codeDemoChat.js');
         if (codeMod && typeof codeMod.renderCodeDemoChat === 'function') {

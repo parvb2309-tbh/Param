@@ -34,7 +34,7 @@ export function renderDemoChat(force = false) {
 
   const realMsgs = box.querySelectorAll('.msg:not([data-demo="true"])');
   if (!force && realMsgs.length > 0) return;
-  if (!force && box.querySelector('[data-demo="pdf"]')) return;
+  if (!force && (box.querySelector('[data-demo="pdf"]') || box.querySelector('[data-demo-type="pdf"]'))) return;
 
   box.innerHTML = '';
 
@@ -169,7 +169,7 @@ export function renderCodeDemoChat(force = false) {
 
   const realMsgs = box.querySelectorAll('.msg:not([data-demo="true"])');
   if (!force && realMsgs.length > 0) return;
-  if (!force && box.querySelector('[data-demo="code"]')) return;
+  if (!force && (box.querySelector('[data-demo="code"]') || box.querySelector('[data-demo-type="code"]'))) return;
 
   box.innerHTML = '';
 
@@ -304,16 +304,35 @@ OK (All concurrency and thread-safety tests passed)`;
   chatRenderer.addMessage('assistant', null, 'qwen3-vl:4b-instruct', assistantMeta);
 
   box.querySelectorAll('.msg, .agent-thread').forEach(el => {
-    el.dataset.demo = 'code';
+    el.dataset.demo = 'true';
+    el.dataset.demoType = 'code';
   });
 
   // Open both tool nodes so the user sees file creation AND sandbox execution output
   const nodes = box.querySelectorAll('.agent-thread-node');
   nodes.forEach(node => {
     node.classList.add('open');
-    const details = node.querySelector('details');
-    if (details) details.setAttribute('open', '');
+    const details = node.querySelectorAll('details');
+    details.forEach(d => d.setAttribute('open', ''));
   });
+
+  // Add Reset button bar so user can re-try the demo anytime
+  const resetBar = document.createElement('div');
+  resetBar.className = 'demo-approval-reset-bar';
+  resetBar.dataset.demo = 'true';
+  resetBar.innerHTML = `
+    <button type="button" class="demo-approval-reset-btn" aria-label="Restart Code Demo">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+      </svg>
+      <span>Restart Demo</span>
+    </button>
+  `;
+  resetBar.querySelector('button').addEventListener('click', () => {
+    renderCodeDemoChat(true);
+  });
+  box.appendChild(resetBar);
 
   chatRenderer.hideWelcomeScreen();
 

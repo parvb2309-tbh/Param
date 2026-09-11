@@ -979,15 +979,17 @@ function createDemoSessionItem(id = 'demo-chat', title = 'Demo Chat', type = 'pd
   star.style.opacity = '1';
   if (type === 'code') {
     star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+    star.title = 'Demo: Industry Code & Sandbox Run';
   } else {
     star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+    star.title = 'Demo: PDF Analysis & File Summary';
   }
   div.appendChild(star);
 
   const span = document.createElement('span');
   span.className = 'grow text-ellipsis';
   span.textContent = title;
-  span.title = 'Demo Chat — PDF Analysis & Summary';
+  span.title = type === 'code' ? 'Demo: Industry Code & Sandbox Run' : 'Demo: PDF Analysis & File Summary';
   div.appendChild(span);
 
   const badge = document.createElement('span');
@@ -1143,8 +1145,9 @@ function _renderSessionListImpl() {
 
   const _frag = document.createDocumentFragment();
 
-  // Always include the Demo Chat item at the top of the Chats list
-  _frag.appendChild(createDemoSessionItem('demo-chat', 'Demo Chat', 'pdf'));
+  // Always include the Demo Chat items at the top of the Chats list
+  _frag.appendChild(createDemoSessionItem('demo-chat', 'Demo: PDF Analysis', 'pdf'));
+  _frag.appendChild(createDemoSessionItem('demo-code', 'Demo: Code & Sandbox', 'code'));
 
   // ── Flat sort modes: ignore folders, show one ordered list. ──
   // Folders are only shown when _sortMode === 'group' (or null/empty
@@ -1751,7 +1754,11 @@ export async function loadSessions() {
       demoBtn._demoWired = true;
       demoBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        selectSession('demo-chat');
+        if (currentSessionId === 'demo-chat') {
+          selectSession('demo-code');
+        } else {
+          selectSession('demo-chat');
+        }
       });
     }
 
@@ -1913,10 +1920,21 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     if (window.chatRenderer && window.chatRenderer.hideWelcomeScreen) {
       window.chatRenderer.hideWelcomeScreen();
     }
-    const demoMod = await import('./demoChat.js');
     if (id === 'demo-code') {
-      demoMod.renderCodeDemoChat(true);
+      try {
+        const codeMod = await import('./codeDemoChat.js');
+        if (codeMod && typeof codeMod.renderCodeDemoChat === 'function') {
+          codeMod.renderCodeDemoChat(true);
+        } else {
+          const demoMod = await import('./demoChat.js');
+          demoMod.renderCodeDemoChat(true);
+        }
+      } catch (_) {
+        const demoMod = await import('./demoChat.js');
+        demoMod.renderCodeDemoChat(true);
+      }
     } else {
+      const demoMod = await import('./demoChat.js');
       demoMod.renderDemoChat(true);
     }
 

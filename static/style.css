@@ -41686,3 +41686,29 @@ body.settings-sidebar-resize-active {
   line-height: 1.4;
 }
 
+#sessions-section .chats-demo-btn {
+  opacity: 0.85 !important;
+  transition: opacity 0.12s, background 0.08s;
+  background: transparent !important;
+  color: var(--accent, var(--brand-color, var(--red, #e06c75))) !important;
+}
+#sessions-section .section-header-flex:hover .chats-demo-btn,
+#sessions-section .chats-demo-btn:hover,
+#sessions-section .chats-demo-btn:focus-visible {
+  opacity: 1 !important;
+}
+#sessions-section .chats-demo-btn .list-item-plus-label {
+  position: static;
+  transform: none;
+  max-width: 0;
+  overflow: hidden;
+  padding-right: 0;
+  transition: max-width 0.2s ease, opacity 0.18s ease, padding-right 0.18s ease;
+}
+#sessions-section .chats-demo-btn:hover .list-item-plus-label,
+#sessions-section .chats-demo-btn:focus-visible .list-item-plus-label,
+#sessions-section .section-header-flex:hover .chats-demo-btn .list-item-plus-label {
+  max-width: 80px;
+  padding-right: 4px;
+}
+

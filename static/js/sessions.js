@@ -966,7 +966,7 @@ function createSessionItem(s) {
   return div;
 }
 
-function createDemoSessionItem(id = 'demo-chat', title = 'Demo: PDF Key Findings', type = 'pdf') {
+function createDemoSessionItem(id = 'demo-chat', title = 'Demo Chat', type = 'pdf') {
   const div = document.createElement('div');
   const isActive = currentSessionId === id;
   div.className = 'list-item session-item demo-session-item' + (isActive ? ' active active-session' : '');
@@ -987,7 +987,7 @@ function createDemoSessionItem(id = 'demo-chat', title = 'Demo: PDF Key Findings
   const span = document.createElement('span');
   span.className = 'grow text-ellipsis';
   span.textContent = title;
-  span.title = title;
+  span.title = 'Demo Chat — PDF Analysis & Summary';
   div.appendChild(span);
 
   const badge = document.createElement('span');
@@ -1143,9 +1143,8 @@ function _renderSessionListImpl() {
 
   const _frag = document.createDocumentFragment();
 
-  // Always include the Demo Chat items at the top of the Chats list
-  _frag.appendChild(createDemoSessionItem('demo-chat', 'Demo: PDF Key Findings', 'pdf'));
-  _frag.appendChild(createDemoSessionItem('demo-code', 'Demo: Code & Sandbox Run', 'code'));
+  // Always include the Demo Chat item at the top of the Chats list
+  _frag.appendChild(createDemoSessionItem('demo-chat', 'Demo Chat', 'pdf'));
 
   // ── Flat sort modes: ignore folders, show one ordered list. ──
   // Folders are only shown when _sortMode === 'group' (or null/empty
@@ -1743,10 +1742,17 @@ export async function loadSessions() {
     renderSessionList();
 
     const sessionsSection = uiModule.el('sessions-section');
-    if (sessions.length === 0) {
-      sessionsSection.classList.add('hidden');
-    } else {
+    if (sessionsSection) {
       sessionsSection.classList.remove('hidden');
+    }
+
+    const demoBtn = document.getElementById('chats-demo-btn');
+    if (demoBtn && !demoBtn._demoWired) {
+      demoBtn._demoWired = true;
+      demoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectSession('demo-chat');
+      });
     }
 
     const activeSessions = sessions.filter(s => !s.archived);
@@ -1768,12 +1774,17 @@ export async function loadSessions() {
     }
     let savedId = _freshRootLoad ? null : Storage.get('lastSessionId');
     // If the persisted lastSessionId points to a transient session (legacy
-    // state from before the persistence-guard was added), drop it.
+    // state from before the persistence-guard was added) or demo chat, drop it.
     if (savedId) {
-      const _saved = activeSessions.find(s => s.id === savedId);
-      if (_saved && _isTransient(_saved)) {
+      if (savedId === 'demo-chat' || savedId === 'demo-code') {
         Storage.remove('lastSessionId');
         savedId = null;
+      } else {
+        const _saved = activeSessions.find(s => s.id === savedId);
+        if (_saved && _isTransient(_saved)) {
+          Storage.remove('lastSessionId');
+          savedId = null;
+        }
       }
     }
     const hasPendingChat = !!_pendingChat;

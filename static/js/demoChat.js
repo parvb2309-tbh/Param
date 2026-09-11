@@ -8,16 +8,16 @@ import * as chatRenderer from './chatRenderer.js';
 
 export function isDemoChatActive() {
   const box = document.getElementById('chat-history');
-  return !!(box && box.querySelector('[data-demo="true"]'));
+  return !!(box && (box.querySelector('[data-demo]') || box.querySelector('[data-demo="true"]')));
 }
 
 export function clearDemoChatIfPresent() {
   const box = document.getElementById('chat-history');
   if (!box) return false;
-  const demoElements = box.querySelectorAll('[data-demo="true"]');
+  const demoElements = box.querySelectorAll('[data-demo], [data-demo="true"], .demo-approval-resolved, .demo-approval-reset-bar');
   if (demoElements.length > 0) {
     const allMsgs = box.querySelectorAll('.msg, .agent-thread');
-    if (allMsgs.length === demoElements.length) {
+    if (allMsgs.length === box.querySelectorAll('.msg[data-demo], .agent-thread[data-demo], .msg[data-demo="true"], .agent-thread[data-demo="true"]').length) {
       box.innerHTML = '';
       return true;
     }
@@ -123,16 +123,34 @@ export function renderDemoChat(force = false) {
   chatRenderer.addMessage('assistant', null, 'qwen3-vl:4b-instruct', assistantMeta);
 
   box.querySelectorAll('.msg, .agent-thread').forEach(el => {
-    el.dataset.demo = 'pdf';
+    el.dataset.demo = 'true';
+    el.dataset.demoType = 'pdf';
   });
 
   const nodes = box.querySelectorAll('.agent-thread-node');
-  if (nodes.length > 1) {
-    const writeNode = nodes[1];
-    writeNode.classList.add('open');
-    const diffDetails = writeNode.querySelector('.agent-tool-diff');
-    if (diffDetails) diffDetails.setAttribute('open', '');
-  }
+  nodes.forEach(node => {
+    node.classList.add('open');
+    const details = node.querySelectorAll('details');
+    details.forEach(d => d.setAttribute('open', ''));
+  });
+
+  // Add Reset button bar so user can re-try the demo anytime
+  const resetBar = document.createElement('div');
+  resetBar.className = 'demo-approval-reset-bar';
+  resetBar.dataset.demo = 'true';
+  resetBar.innerHTML = `
+    <button type="button" class="demo-approval-reset-btn" aria-label="Restart Demo">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+      </svg>
+      <span>Restart Demo</span>
+    </button>
+  `;
+  resetBar.querySelector('button').addEventListener('click', () => {
+    renderDemoChat(true);
+  });
+  box.appendChild(resetBar);
 
   chatRenderer.hideWelcomeScreen();
 
@@ -303,4 +321,294 @@ OK (All concurrency and thread-safety tests passed)`;
   if (metaEl) metaEl.textContent = 'Demo: Code & Sandbox Run';
 
   box.scrollTop = 0;
+}
+
+/**
+ * Demo 3: MRPL (Ministry of Petroleum and Refinery) Operations & Supervisor Tool Approval
+ */
+export function renderMRPLDemoChat(force = false) {
+  const box = document.getElementById('chat-history');
+  if (!box) return;
+
+  const realMsgs = box.querySelectorAll('.msg:not([data-demo]):not([data-demo="true"])');
+  if (!force && realMsgs.length > 0) return;
+  if (!force && box.querySelector('[data-demo="mrpl"]')) return;
+
+  box.innerHTML = '';
+
+  // 1. User Prompt representing a high-consequence refinery operations challenge
+  const userContent = '[MRPL Alert CDU-4] Incoming crude batch "Mangalore Blend #09" has sulfur content surging to 3.85 wt% (nominal limit: 2.20 wt%). Column 04 overhead temperature is spiking at +3.2°C/min (currently 168.4°C). Run SCADA unit telemetry diagnostics, calculate emergency bypass parameters, and prepare valve actuation setpoint on Control Valve CV-402 to avert coking and column shutdown.';
+
+  const userMeta = {
+    timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
+    _isDemo: true
+  };
+
+  chatRenderer.addMessage('user', userContent, null, userMeta);
+
+  // 2. SCADA Telemetry & Kinetics Diagnostic Outputs
+  const scadaOutput = `[MRPL DCS SCADA INTERFACE - UNIT-4 CRUDE DISTILLATION]
+Connection: SECURE MODBUS/TCP (10.14.88.22:502) - Status: CONNECTED
+Telemetry Snapshot @ 2026-09-11 21:10:45 IST:
+- TI_168 (Column Overhead Temp)  : 168.4 °C [HIGH-HIGH TRIP: 170.0 °C]
+- PI_402 (Desalter Outlet Press) : 18.4 bar [NOMINAL: 16-20 bar]
+- SULFUR_WT (Crude Feed Sulfur)  : 3.85 wt% [MAX SPEC: 2.20 wt% - EXCURSION]
+- FEED_BPD (Current Crude Rate)  : 65,400 bpd (Basrah Heavy + Arab Heavy blend)
+- CAT_DIFF_P (Hydrotreater dP)   : 2.35 bar (Approaching coking limit: 2.50 bar)
+- CV_402_POS (Bypass Valve)      : 48.0% [CURRENT POSITION]
+Diagnostic Verdict: Severe high-sulfur crude excursion causing rapid thermal cracking & tray fouling in Column 04 overhead. Immediate quench bypass required.`;
+
+  const kineticsOutput = `[MRPL KINETICS & HYDRAULIC REFLUX OPTIMIZER]
+Kinetic Simulation Results (Model: MRPL-Refinery-Opt v4.2):
+- Target Overhead Temperature : 153.0 °C (Margin: -15.4 °C below threshold)
+- Required Quench Divert Flow : 14,715 bpd (22.5% of total feed) to Exchanger Bank B
+- Recommended CV-402 Setpoint : 70.5% (+22.5% step increase from 48.0%)
+- Treat-Gas H2/Oil Ratio Boost: 320 Nm³/m³ -> 395 Nm³/m³ (+75 Nm³/m³)
+- Expected Column Stabilization: Within 3.5 minutes of valve transit
+- Economic Impact Mitigation  : Averts unscheduled shutdown & catalyst replacement (~₹3.4 Crore / $410,000)
+- Safety Gate                  : OISD-169 SIL-3 Interlock ACTIVE. Hardware setpoint write locked pending Supervisor approval.`;
+
+  const assistantInitialText = `Initiating MRPL Refinery Diagnostic & Safety Response Protocol for **Unit-4 Crude Distillation Unit (CDU/ADU)** at the Mangalore Refinery Complex.
+
+### Diagnostic Plan:
+1. **SCADA Diagnostics**: Query real-time Modbus telemetry for Column 04 overhead temperature, desalter differential pressure, and crude sulfur content.
+2. **Kinetics & Hydraulic Optimization**: Model the thermal reflux curve to determine optimal quench bypass diversion and hydrotreater hydrogen treat-gas boost.
+3. **Safety Interlock Gating**: Formulate the Distributed Control System (DCS) setpoint override for Emergency Bypass Valve **CV-402**.
+
+> ⚠️ **MRPL Operational Safety Notice (SIL-3 / OISD-169)**:
+> Automated write operations to critical refinery unit controllers are locked. Physical setpoint dispatch to **Control Valve CV-402** requires explicit **Shift Supervisor Authorization**.`;
+
+  const assistantMeta = {
+    model: 'qwen3-vl:4b-instruct',
+    requested_model: 'qwen3-vl:4b-instruct',
+    round_texts: [assistantInitialText],
+    round_models: ['qwen3-vl:4b-instruct'],
+    tool_events: [
+      {
+        round: 1,
+        tool: 'mrpl_scada_diagnostics',
+        command: 'scada.read_sensors(unit="CDU-04", tags=["TI_168", "PI_402", "SULFUR_WT", "FEED_BPD", "CV_402_POS"])',
+        output: scadaOutput,
+        exit_code: 0
+      },
+      {
+        round: 1,
+        tool: 'mrpl_kinetics_calc',
+        command: 'kinetics.optimize_quench(unit="CDU-04", crude_bpd=65400, sulfur_wt=3.85, target_temp=153.0)',
+        output: kineticsOutput,
+        exit_code: 0
+      }
+    ],
+    response_time: 3.84,
+    time_to_first_token: 0.82,
+    tokens_per_second: 42.1,
+    input_tokens: 1940,
+    output_tokens: 420,
+    total_tokens: 2360,
+    timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
+    _isDemo: true
+  };
+
+  chatRenderer.addMessage('assistant', null, 'qwen3-vl:4b-instruct', assistantMeta);
+
+  box.querySelectorAll('.msg, .agent-thread').forEach(el => {
+    el.dataset.demo = 'mrpl';
+  });
+
+  // Open both tool nodes so telemetry and kinetics calculation are visible
+  const nodes = box.querySelectorAll('.agent-thread-node');
+  nodes.forEach(node => {
+    node.classList.add('open');
+    const details = node.querySelector('details');
+    if (details) details.setAttribute('open', '');
+  });
+
+  // 3. Render the interactive Tool Approval Card asking for approval from the supervisor
+  const approvalPayload = {
+    kind: 'tool_approval',
+    approval_id: 'mrpl-scada-cv402-' + Date.now(),
+    question: '⚠️ MRPL Safety Interlock (SIL-3) — Shift Supervisor Authorization Required:\nAuthorize DCS setpoint override on Control Valve CV-402 (Unit-4 CDU Quench Bypass to 70.5%) and Hydrogen Treat-Gas boost (+75 Nm³/m³)?',
+    action: {
+      tool: 'mrpl_dcs.dispatch_setpoint_override',
+      content: 'UNIT: CDU-04 (Mangalore Refinery Complex)\nTAG: CV-402.SP_OUT = 70.5% (Transit: 48.0% -> 70.5%)\nH2_BOOST: 395 Nm³/m³ (+75 Nm³/m³)\nEFFECT: Diverts 14,715 bpd crude to Quench Bank B\nINTERLOCK: OISD-169 SIL-3 Override Protocol (15-min timeout)',
+      effects: [
+        'Dispatches real-time DCS setpoint override to Honeywell Experion controller',
+        'Modulates hydraulic bypass valve CV-402 to 70.5% open',
+        'Suppresses high-temperature coking trip on Column 04 Overhead (168.4°C -> 153.2°C)',
+        'Generates cryptographically stamped regulatory audit event in MRPL Central Historian'
+      ],
+      workspace: 'MRPL Sector-4 Refinery Control Room (Mangalore)',
+      digest: 'sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069'
+    },
+    options: [
+      {
+        label: 'Authorize & Dispatch to DCS',
+        value: 'approve',
+        description: 'Confirm supervisor override credentials and execute valve setpoint immediately.'
+      },
+      {
+        label: 'Authorize for Full Shift (8 hrs)',
+        value: 'chat_session',
+        description: 'Grant supervisor approval for subsequent Unit-4 CDU thermal recalibrations today.'
+      },
+      {
+        label: 'Deny & Trigger Safe Slop Diversion',
+        value: 'deny',
+        description: 'Reject DCS override. Direct high-sulfur feed to off-spec slop storage tanks.'
+      }
+    ]
+  };
+
+  chatRenderer.renderAskUserCard(approvalPayload, {
+    root: box,
+    onSubmit: (result) => {
+      handleMRPLApprovalDecision(result, box);
+      return true;
+    }
+  });
+
+  chatRenderer.hideWelcomeScreen();
+
+  const metaEl = document.getElementById('current-meta');
+  if (metaEl) metaEl.textContent = 'Demo: MRPL Refinery Operations';
+
+  box.scrollTop = 0;
+}
+
+function handleMRPLApprovalDecision(result, box) {
+  const isApproved = result.decision === 'approve' || result.decision === 'chat_session';
+  const label = result.label || (isApproved ? 'Authorize & Dispatch to DCS' : 'Deny & Trigger Safe Slop Diversion');
+
+  // 1. Insert resolution banner
+  const resBanner = document.createElement('div');
+  resBanner.className = 'demo-approval-resolved ' + (isApproved ? 'approved' : 'denied');
+  resBanner.dataset.demo = 'mrpl';
+  resBanner.innerHTML = `
+    <span class="demo-approval-icon">${isApproved ? '✓' : '✗'}</span>
+    <div>
+      <strong>${isApproved ? 'Authorized by Shift Supervisor' : 'Override Denied by Shift Supervisor'}</strong>
+      <span style="opacity:0.85;margin-left:6px;">(${label})</span>
+      <div style="font-size:11px;opacity:0.75;margin-top:2px;">
+        ${isApproved ? 'DCS Setpoint Dispatched • SIL-3 Interlock Momentarily Lifted • Historian #MRPL-2026-TX-994182' : 'DCS Setpoint Cancelled • Feed Diverted to Slop Tank TK-408 • Incident Log #MRPL-2026-INC-402'}
+      </div>
+    </div>
+  `;
+  box.appendChild(resBanner);
+
+  if (isApproved) {
+    // 2. Render DCS execution tool event and final assistant message
+    const dcsExecutionOutput = `[HONEYWELL EXPERION DCS GATEWAY - ACKNOWLEDGED]
+Timestamp: ${new Date().toISOString()}
+SCADA Loop: ADU4-CV402-LOOP (Station 10.14.88.22)
+Auth Token: SUP-MRPL-9042 (VERIFIED - Shift Supervisor Grade-1)
+Dispatched Setpoint: 70.50% OPEN
+Actuator Feedback  : 70.48% (LVDT linear confirmation in 3.2s)
+Real-Time Telemetry Trend:
+- TI_168 (Overhead Temp)  : 168.4 °C -> 153.2 °C [STABILIZED, Target <160 °C]
+- PI_402 (Desalter Press) : 18.4 bar -> 17.9 bar [STABLE]
+- Quench Bank B Flow Rate : 14,715 bpd active
+- H2 Treat-Gas Ratio      : 395 Nm³/m³ locked (+75 Nm³/m³)
+- Hydrotreater Bed Delta-P: 1.82 bar (Thermal coking prevented)
+Plant Historian: Committed Transaction #MRPL-2026-TX-994182
+Safety Integrity: SIL-3 Safety Interlock restored to Normal Monitoring State.`;
+
+    const assistantResolutionText = `### ✓ MRPL Unit-4 Telemetry Successfully Stabilized
+
+Following your supervisor authorization, the DCS setpoint override was successfully transmitted to **Control Valve CV-402** and downstream hydroprocessing units.
+
+#### Summary of Operating Metrics:
+- **Column Overhead Temperature**: Successfully decreased from **168.4°C to 153.2°C** (-15.2°C reduction), remaining well below the 160°C coking threshold.
+- **Crude Quench Bypass**: **14,715 bpd** (22.5% of total feed) safely diverted through Secondary Exchanger Bank B.
+- **Catalyst Protection**: Hydrotreater differential pressure normalized to **1.82 bar**, preventing premature catalyst deactivation and saving an estimated **₹3.4 Crore** in turnaround costs.
+- **Regulatory Audit**: Operation cryptographically verified and recorded in the MRPL Plant Historian under **OISD-169 & SIL-3 compliance**.
+
+Unit-4 Atmospheric & Crude Distillation is operating safely at full rated throughput.`;
+
+    const resolutionMeta = {
+      model: 'qwen3-vl:4b-instruct',
+      requested_model: 'qwen3-vl:4b-instruct',
+      round_texts: [assistantResolutionText],
+      round_models: ['qwen3-vl:4b-instruct'],
+      tool_events: [
+        {
+          round: 1,
+          tool: 'mrpl_dcs_scada',
+          command: 'dcs.dispatch_setpoint(unit="CDU-04", tag="CV-402.SP_OUT", value=70.5, h2_ratio=395)',
+          output: dcsExecutionOutput,
+          exit_code: 0
+        }
+      ],
+      response_time: 2.15,
+      time_to_first_token: 0.45,
+      tokens_per_second: 48.0,
+      input_tokens: 1120,
+      output_tokens: 380,
+      total_tokens: 1500,
+      timestamp: new Date().toISOString(),
+      _isDemo: true
+    };
+
+    chatRenderer.addMessage('assistant', null, 'qwen3-vl:4b-instruct', resolutionMeta);
+  } else {
+    // 2. Denied flow
+    const assistantDenialText = `### 🛑 DCS Setpoint Override Cancelled per Supervisor Order
+
+The setpoint command on **Control Valve CV-402 was not dispatched**. In accordance with MRPL Emergency Standard Operating Procedures (SOP-CDU-04-REV3):
+
+1. **Feed Rate Throttled**: Incoming high-sulfur crude feed (3.85 wt%) has been curtailed to minimum turndown (**42,000 bpd**).
+2. **Slop Diversion**: Off-spec crude stream diverted to intermediate storage tank **TK-408** to avert column overhead fouling.
+3. **Field Dispatch**: Alerted Field Shift Marshall to perform manual desalter brine conductivity and chemical demulsifier checks.
+4. **Safety System**: SIL-3 hardware interlocks remain intact with zero unauthorized SCADA modifications.
+
+*Awaiting manual field inspection report or further supervisor directive.*`;
+
+    const denialMeta = {
+      model: 'qwen3-vl:4b-instruct',
+      requested_model: 'qwen3-vl:4b-instruct',
+      round_texts: [assistantDenialText],
+      round_models: ['qwen3-vl:4b-instruct'],
+      response_time: 1.45,
+      time_to_first_token: 0.38,
+      tokens_per_second: 52.0,
+      input_tokens: 850,
+      output_tokens: 240,
+      total_tokens: 1090,
+      timestamp: new Date().toISOString(),
+      _isDemo: true
+    };
+
+    chatRenderer.addMessage('assistant', null, 'qwen3-vl:4b-instruct', denialMeta);
+  }
+
+  // Tag newly created messages
+  box.querySelectorAll('.msg, .agent-thread').forEach(el => {
+    el.dataset.demo = 'mrpl';
+  });
+
+  // Open any new tool nodes
+  box.querySelectorAll('.agent-thread-node').forEach(node => {
+    node.classList.add('open');
+    const details = node.querySelector('details');
+    if (details) details.setAttribute('open', '');
+  });
+
+  // Add Reset button bar so user can re-try the demo anytime
+  const resetBar = document.createElement('div');
+  resetBar.className = 'demo-approval-reset-bar';
+  resetBar.dataset.demo = 'mrpl';
+  resetBar.innerHTML = `
+    <button type="button" class="demo-approval-reset-btn" aria-label="Restart MRPL Demo">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+      </svg>
+      <span>Restart MRPL Approval Demo</span>
+    </button>
+  `;
+  resetBar.querySelector('button').addEventListener('click', () => {
+    renderMRPLDemoChat(true);
+  });
+  box.appendChild(resetBar);
+
+  box.scrollTop = box.scrollHeight;
 }

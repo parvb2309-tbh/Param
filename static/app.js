@@ -1,5 +1,5 @@
 // ============================================
-// Odysseus UI — Main Application Orchestrator
+// Param UI — Main Application Orchestrator
 // ES6 module — entry point, no exports (wires all modules together)
 // ============================================
 import Storage from './js/storage.js';
@@ -23,6 +23,7 @@ import {
 } from './js/startupShell.js';
 import markdownModule from './js/markdown.js';
 import chatRenderer from './js/chatRenderer.js?v=20260819approvalcontrol1';
+import * as demoChat from './js/demoChat.js';
 import sessionModule from './js/sessions.js';
 import memoryModule from './js/memory.js?v=20260722memoryloading1';
 import voiceRecorderModule from './js/voiceRecorder.js';
@@ -73,8 +74,8 @@ function _submitChatFormDirect(form) {
 
 function _isForegroundChatBusy() {
   const sendBtn = document.querySelector('.send-btn');
-  return !!window.__odysseusChatBusy
-    || Date.now() < (window.__odysseusChatBusyUntil || 0)
+  return !!window.__paramChatBusy
+    || Date.now() < (window.__paramChatBusyUntil || 0)
     || !!document.querySelector('.send-btn[data-mode="streaming"], .send-btn.send-pending')
     || (sendBtn && (sendBtn.title || '').toLowerCase().includes('stop'));
 }
@@ -113,7 +114,7 @@ function _submitMobileQueuedInput(input) {
   if (chatModule && chatModule.queueStreamingComposerRequest && chatModule.queueStreamingComposerRequest()) {
     return true;
   }
-  window.__odysseusQueueStreamingSubmit = now;
+  window.__paramQueueStreamingSubmit = now;
   const form = document.getElementById('chat-form');
   _submitChatFormDirect(form);
   return true;
@@ -213,10 +214,10 @@ const el = uiModule.el;
 // went stale when the user changed their default model).
 let _defaultChat = null;
 try {
-  const cachedDefaultChat = JSON.parse(localStorage.getItem('odysseus-default-chat-cache') || 'null');
+  const cachedDefaultChat = JSON.parse(localStorage.getItem('param-default-chat-cache') || 'null');
   if (cachedDefaultChat && cachedDefaultChat.endpoint_url && cachedDefaultChat.model) {
     _defaultChat = cachedDefaultChat;
-    window.__odysseusDefaultChat = cachedDefaultChat;
+    window.__paramDefaultChat = cachedDefaultChat;
   }
 } catch (_) {}
 async function _refreshDefaultChat() {
@@ -225,8 +226,8 @@ async function _refreshDefaultChat() {
     if (d && d.endpoint_url && d.model) {
       _defaultChat = d;
       try {
-        window.__odysseusDefaultChat = d;
-        localStorage.setItem('odysseus-default-chat-cache', JSON.stringify(d));
+        window.__paramDefaultChat = d;
+        localStorage.setItem('param-default-chat-cache', JSON.stringify(d));
       } catch (_) {}
       return d;
     }
@@ -1480,7 +1481,7 @@ function initializeEventListeners() {
     modelSortDropdown.querySelectorAll('.sort-option').forEach(opt => {
       opt.addEventListener('click', () => {
         const mode = opt.dataset.sort;
-        Storage.set('odysseus-model-sort', mode);
+        Storage.set('param-model-sort', mode);
         if (modelsModule) modelsModule.refreshModels();
         modelSortDropdown.style.display = 'none';
         uiModule.showToast('Models sorted: ' + opt.textContent.trim().toLowerCase());
@@ -1839,7 +1840,7 @@ function initializeEventListeners() {
       // Delay tool glow-up for a staggered effect
       setTimeout(() => applyModeToToggles(mode), 500);
     }
-    window.__odysseusSetChatMode = setMode;
+    window.__paramSetChatMode = setMode;
     agentBtn.addEventListener('click', () => {
       // Agent mode turns off research if active
       const resChk = el('research-toggle');
@@ -1854,7 +1855,7 @@ function initializeEventListeners() {
     const btn = el('plan-toggle-btn');
     const state = loadToggleState();
     syncPlanToggle(!!state.plan_mode);
-    window.__odysseusSetPlanMode = (active) => setPlanMode(active, { silent: true });
+    window.__paramSetPlanMode = (active) => setPlanMode(active, { silent: true });
     const statusToggle = el('plan-mode-status-toggle');
     if (btn) {
       btn.addEventListener('click', () => {
@@ -1866,8 +1867,8 @@ function initializeEventListeners() {
       statusToggle.addEventListener('click', () => setPlanMode(false));
     }
     const msgInput = el('message');
-    if (msgInput && !msgInput._odysseusPlanTabToggle) {
-      msgInput._odysseusPlanTabToggle = true;
+    if (msgInput && !msgInput._paramPlanTabToggle) {
+      msgInput._paramPlanTabToggle = true;
       msgInput.addEventListener('keydown', (e) => {
         if (e.key !== 'Tab' || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey || e.isComposing) return;
         e.preventDefault();
@@ -1877,8 +1878,8 @@ function initializeEventListeners() {
       });
     }
     const chatBar = document.querySelector('.chat-input-bar');
-    if (chatBar && !chatBar._odysseusPlanSwipeToggle) {
-      chatBar._odysseusPlanSwipeToggle = true;
+    if (chatBar && !chatBar._paramPlanSwipeToggle) {
+      chatBar._paramPlanSwipeToggle = true;
       let touchStartX = 0;
       let touchStartY = 0;
       let touchStartAt = 0;
@@ -1905,7 +1906,7 @@ function initializeEventListeners() {
   })();
 
   // ── Tool splash explainer messages (shown first 2 times per tool) ──
-  const SPLASH_COUNT_KEY = 'odysseus-tool-splash-counts';
+  const SPLASH_COUNT_KEY = 'param-tool-splash-counts';
   const SPLASH_MAX = 2;
   const _toolSplashes = {
     web: { role: 'Web Search', text: 'Searches the web for relevant information to include in the response. Results are fetched and summarized before the AI answers.' },
@@ -2414,8 +2415,8 @@ function initializeEventListeners() {
 	      textarea.setAttribute('placeholder', width < PLACEHOLDER_COMPACT_WIDTH ? 'Message...' : 'Message परम...');
 	    }
 
-	    if (_isMobile && textarea && !textarea._odysseusPlanPlaceholderHint) {
-	      textarea._odysseusPlanPlaceholderHint = true;
+	    if (_isMobile && textarea && !textarea._paramPlanPlaceholderHint) {
+	      textarea._paramPlanPlaceholderHint = true;
 	      setInterval(() => {
 	        _placeholderHintOn = !_placeholderHintOn;
 	        setComposerPlaceholder(inputTop.clientWidth || window.innerWidth || 0);
@@ -2634,8 +2635,8 @@ function initializeEventListeners() {
         const _offIds = ['web-toggle', 'bash-toggle', 'research-toggle'];
         _offIds.forEach(id => { const c = el(id); if (c) c.checked = false; });
         ['web-toggle-btn', 'bash-toggle-btn'].forEach(id => { const b = el(id); if (b) b.classList.remove('active'); });
-        if (typeof window.__odysseusSetChatMode === 'function') {
-          window.__odysseusSetChatMode('chat');
+        if (typeof window.__paramSetChatMode === 'function') {
+          window.__paramSetChatMode('chat');
         } else {
           const _ab = el('mode-agent-btn'), _cb = el('mode-chat-btn');
           if (_ab) {
@@ -2683,8 +2684,8 @@ function initializeEventListeners() {
           if (_ts[k] === false) delete _ts[k];
         });
         Storage.setJSON(Storage.KEYS.TOGGLES, _ts);
-        if (typeof window.__odysseusSetChatMode === 'function') {
-          window.__odysseusSetChatMode(_restoreMode === 'chat' ? 'chat' : 'agent');
+        if (typeof window.__paramSetChatMode === 'function') {
+          window.__paramSetChatMode(_restoreMode === 'chat' ? 'chat' : 'agent');
         }
         // Reapply the current mode's real defaults to the visible toggles
         const _curMode = (Storage.getJSON(Storage.KEYS.TOGGLES, {}) || {}).mode || 'chat';
@@ -2723,7 +2724,7 @@ function initializeEventListeners() {
   }
 
   // ── UI Visibility (Customize UI modal) ──
-  const UI_VIS_KEY = 'odysseus-ui-visibility';
+  const UI_VIS_KEY = 'param-ui-visibility';
 
   // Keys that need admin to toggle off (reserved for future use)
   const UI_VIS_ADMIN_ONLY = new Set([]);
@@ -2963,7 +2964,7 @@ function initializeEventListeners() {
 
   // Migrate old toolbar visibility key if present
   (function migrateOldToolbarVis() {
-    const OLD_KEY = 'odysseus-toolbar-visibility';
+    const OLD_KEY = 'param-toolbar-visibility';
     try {
       const old = Storage.getJSON(OLD_KEY, null);
       if (old && typeof old === 'object') {
@@ -3413,7 +3414,7 @@ function initializeEventListeners() {
   const textarea = el('message');
   if (textarea) {
     _syncMobileEnterKeyHint(textarea);
-    window.addEventListener('odysseus:chat-busy-change', () => _syncMobileEnterKeyHint(textarea));
+    window.addEventListener('param:chat-busy-change', () => _syncMobileEnterKeyHint(textarea));
     uiModule.autoResize(textarea);
     let previousTextareaValue = textarea.value || '';
     textarea.addEventListener('beforeinput', (e) => {
@@ -3460,7 +3461,7 @@ function initializeEventListeners() {
             if (chatModule && chatModule.queueStreamingComposerRequest && chatModule.queueStreamingComposerRequest()) {
               return;
             }
-            window.__odysseusQueueStreamingSubmit = Date.now();
+            window.__paramQueueStreamingSubmit = Date.now();
           }
           _submitChatFormDirect(form);
         }
@@ -3659,13 +3660,13 @@ function initializeEventListeners() {
 // ============================================
 // INITIALIZATION ON PAGE LOAD
 // ============================================
-function startOdysseusApp() {
+function startParamApp() {
   tasksModule?.startNotificationPolling?.();
-  if (window.__odysseusAppStarted) return;
-  window.__odysseusAppStarted = true;
+  if (window.__paramAppStarted) return;
+  window.__paramAppStarted = true;
   const _bumpChatPriority = (ms = 10000) => {
     try {
-      window.__odysseusChatBusyUntil = Math.max(window.__odysseusChatBusyUntil || 0, Date.now() + ms);
+      window.__paramChatBusyUntil = Math.max(window.__paramChatBusyUntil || 0, Date.now() + ms);
     } catch (_) {}
   };
   _bumpChatPriority(10000);
@@ -3718,7 +3719,7 @@ function startOdysseusApp() {
     documentModule.init(API_BASE);
     // Restore document panel if it was open before refresh
     const _curSession = sessionModule && sessionModule.getCurrentSessionId();
-    if (_curSession && localStorage.getItem('odysseus-doc-open-' + _curSession) === '1') {
+    if (_curSession && localStorage.getItem('param-doc-open-' + _curSession) === '1') {
       documentModule.loadSessionDocs(_curSession);
     }
   }  
@@ -3853,6 +3854,15 @@ function startOdysseusApp() {
     // Release after a short delay (stream start sets its own isStreaming guard)
     setTimeout(() => { _submitting = false; }, 300);
 
+    const _msgInputEl = document.getElementById('message');
+    const _rawPrompt = _msgInputEl ? _msgInputEl.value.trim() : '';
+    if (_rawPrompt && window._triggerBrainRoutingNotification) {
+      try {
+        const _currentM = (sessionModule && sessionModule.getCurrentModel) ? sessionModule.getCurrentModel() : '';
+        window._triggerBrainRoutingNotification(_rawPrompt, false, _currentM);
+      } catch (_) {}
+    }
+
     // Compare mode: route submit to compare handler (same message to all panes)
     if (compareModule && compareModule.isActive()) {
       return compareModule.handleCompareSubmit(e);
@@ -3894,7 +3904,7 @@ function startOdysseusApp() {
   const _newChatIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 
   // Expose icons globally so chat.js updateSubmitButton can use them
-  window._odysseusBtnIcons = { send: _sendIcon, mic: _micIcon, stop: _stopIcon, newChat: _newChatIcon };
+  window._paramBtnIcons = { send: _sendIcon, mic: _micIcon, stop: _stopIcon, newChat: _newChatIcon };
 
   function _isSttEnabled() {
     return voiceRecorderModule._sttProvider && voiceRecorderModule._sttProvider !== 'disabled';
@@ -4025,7 +4035,7 @@ function startOdysseusApp() {
       const hasFiles = _hasAttachments();
 
       if (sendBtn.dataset.mode === 'streaming') {
-        if (hasText) window.__odysseusQueueStreamingSubmit = Date.now();
+        if (hasText) window.__paramQueueStreamingSubmit = Date.now();
         handleSubmit(e);
         return;
       }
@@ -4087,7 +4097,7 @@ function startOdysseusApp() {
           if (chatModule && chatModule.queueStreamingComposerRequest && chatModule.queueStreamingComposerRequest()) {
             return;
           }
-          window.__odysseusQueueStreamingSubmit = Date.now();
+          window.__paramQueueStreamingSubmit = Date.now();
         }
         _submitChatFormDirect(document.getElementById('chat-form'));
       }
@@ -4315,8 +4325,8 @@ function startOdysseusApp() {
   const runNonCriticalStartup = (fn, delay = 4000) => {
     let tries = 0;
     const run = () => {
-      const busy = !!window.__odysseusChatBusy
-        || Date.now() < (window.__odysseusChatBusyUntil || 0)
+      const busy = !!window.__paramChatBusy
+        || Date.now() < (window.__paramChatBusyUntil || 0)
         || !!document.querySelector('.send-btn[data-mode="streaming"], .send-btn.send-pending');
       if (busy && tries < 12) {
         tries += 1;
@@ -4577,7 +4587,7 @@ function startOdysseusApp() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startOdysseusApp, { once: true });
+  document.addEventListener('DOMContentLoaded', startParamApp, { once: true });
 } else {
-  startOdysseusApp();
+  startParamApp();
 }

@@ -80,7 +80,7 @@ import { loadPanel } from './panels.js';
     if (sendButton) sendButton.click();
   }
 
-  document.addEventListener('odysseus:tool-approval', (event) => {
+  document.addEventListener('param:tool-approval', (event) => {
     const detail = event && event.detail ? event.detail : {};
     const decision = String(detail.decision || '').toLowerCase();
     if (!detail.approval_id || !['approve', 'approve_task', 'deny'].includes(decision)) return;
@@ -331,9 +331,9 @@ import { loadPanel } from './panels.js';
 
   function _setForegroundChatBusy(active) {
     try {
-      window.__odysseusChatBusy = !!active;
-      window.__odysseusChatBusyUntil = active ? Date.now() + 120000 : Date.now() + 1200;
-      window.dispatchEvent(new CustomEvent('odysseus:chat-busy-change', { detail: { active: !!active } }));
+      window.__paramChatBusy = !!active;
+      window.__paramChatBusyUntil = active ? Date.now() + 120000 : Date.now() + 1200;
+      window.dispatchEvent(new CustomEvent('param:chat-busy-change', { detail: { active: !!active } }));
     } catch (_) {}
   }
   let _pendingContinue = null; // Stores the stopped AI element to merge with new response
@@ -399,11 +399,11 @@ import { loadPanel } from './panels.js';
     if (sessionModule.hasPendingChat && sessionModule.hasPendingChat()) return false;
     const activeRowId = document.querySelector('.list-item.active-session[data-session-id], .session-item.active[data-session-id]')?.dataset?.sessionId || '';
     const hashId = _hashSessionCandidate();
-    const lastSelectedId = String(window.__odysseusLastSelectedSessionId || '').trim();
+    const lastSelectedId = String(window.__paramLastSelectedSessionId || '').trim();
     const targetId = activeRowId || hashId || lastSelectedId;
     if (!targetId) return false;
     try {
-      window.__odysseusComposerUserEdited = true;
+      window.__paramComposerUserEdited = true;
       if (sessionModule.selectSession) {
         await sessionModule.selectSession(targetId, { keepSidebar: true, showLoading: false });
       } else if (sessionModule.setCurrentSessionId) {
@@ -470,14 +470,14 @@ import { loadPanel } from './panels.js';
       if (pending && pending.modelId) return pending.modelId;
     } catch (_) {}
     try {
-      const lastPicked = window.__odysseusLastPickedRoute || null;
+      const lastPicked = window.__paramLastPickedRoute || null;
       if (lastPicked && lastPicked.model && Date.now() - (lastPicked.picked_at || 0) < 10 * 60 * 1000) {
         return lastPicked.model;
       }
     } catch (_) {}
     if (routeSnapshot && routeSnapshot.model) return routeSnapshot.model;
     try {
-      const dc = window.__odysseusDefaultChat || JSON.parse(localStorage.getItem('odysseus-default-chat-cache') || 'null');
+      const dc = window.__paramDefaultChat || JSON.parse(localStorage.getItem('param-default-chat-cache') || 'null');
       if (dc && dc.model) return dc.model;
     } catch (_) {}
     return '';
@@ -677,7 +677,7 @@ import { loadPanel } from './panels.js';
     fetch(`/api/chat/stop/${encodeURIComponent(sessionId)}`, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'X-Odysseus-Run-Id': runId },
+      headers: { 'X-Param-Run-Id': runId },
     }).catch(() => {});
   }
 
@@ -853,7 +853,7 @@ import { loadPanel } from './panels.js';
       // Clear any pending transitions from + → arrow swap
       submitBtn.classList.remove('anim-spin', 'anim-spin-swap', 'anim-land', 'mic-mode', 'newchat-mode', 'newchat-expanded', 'recording');
       // Ensure arrow icon is showing before launch
-      var icons = window._odysseusBtnIcons;
+      var icons = window._paramBtnIcons;
       if (icons) submitBtn.innerHTML = icons.send;
       void submitBtn.offsetWidth;
       // Arrow launches up, then stop icon lands in
@@ -891,7 +891,7 @@ import { loadPanel } from './panels.js';
       if (window._updateSendBtnIcon) {
         setTimeout(window._updateSendBtnIcon, 50);
       } else {
-        var icons = window._odysseusBtnIcons;
+        var icons = window._paramBtnIcons;
         submitBtn.innerHTML = icons ? icons.send : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
         submitBtn.title = 'Send message';
         submitBtn.classList.remove('mic-mode', 'newchat-mode');
@@ -905,7 +905,7 @@ import { loadPanel } from './panels.js';
 
   // API key pattern for the guard in handleChatSubmit
   const API_KEY_RE = /^(sk-[a-zA-Z0-9_\-]{20,}|gsk_[a-zA-Z0-9]{20,}|AIza[a-zA-Z0-9_\-]{30,}|xai-[a-zA-Z0-9]{20,})$/;
-  const PLAN_STORAGE_KEY = 'odysseus-active-plan';
+  const PLAN_STORAGE_KEY = 'param-active-plan';
 
   const _queuedAgentRequests = [];
   let _queuedDrainTimer = null;
@@ -957,8 +957,8 @@ import { loadPanel } from './panels.js';
 	      const approved = _getStoredPlan() || _extractPlanText(plan);
 	      if (!approved.trim()) return;
 	      _pendingApprovedPlan = approved;
-	      if (window.__odysseusSetPlanMode) window.__odysseusSetPlanMode(false);
-	      if (window.__odysseusSetChatMode) window.__odysseusSetChatMode('agent');
+	      if (window.__paramSetPlanMode) window.__paramSetPlanMode(false);
+	      if (window.__paramSetChatMode) window.__paramSetChatMode('agent');
 	      _setComposerAndSend('Execute the approved plan.');
 	    });
 	    actions.querySelector('.plan-inline-clear')?.addEventListener('click', () => {
@@ -1126,9 +1126,9 @@ import { loadPanel } from './panels.js';
     // If currently streaming, keyboard Enter can queue a non-empty composer.
     // Clicking the stop icon should still stop normally, even if text exists.
     if (isStreaming) {
-      const queueRequestedAt = Number(window.__odysseusQueueStreamingSubmit || 0);
+      const queueRequestedAt = Number(window.__paramQueueStreamingSubmit || 0);
       const shouldQueueStreamingSubmit = queueRequestedAt && Date.now() - queueRequestedAt < 1200;
-      window.__odysseusQueueStreamingSubmit = 0;
+      window.__paramQueueStreamingSubmit = 0;
       if (shouldQueueStreamingSubmit && queueStreamingComposerRequest()) {
         return;
       }
@@ -1331,7 +1331,7 @@ import { loadPanel } from './panels.js';
 
     const selectedRouteForSend = (() => {
       try {
-        const lastPicked = window.__odysseusLastPickedRoute || null;
+        const lastPicked = window.__paramLastPickedRoute || null;
         if (lastPicked && lastPicked.model && Date.now() - (lastPicked.picked_at || 0) < 10 * 60 * 1000) {
           return {
             model: lastPicked.model || '',
@@ -1384,10 +1384,10 @@ import { loadPanel } from './panels.js';
       // Auto-create a session using default chat config. Always fetch fresh
       // so that a recent Settings change takes effect without a page reload.
       try {
-        let dc = (typeof window !== 'undefined' && window.__odysseusDefaultChat) || null;
+        let dc = (typeof window !== 'undefined' && window.__paramDefaultChat) || null;
         if (!dc || !dc.endpoint_url || !dc.model) {
           try {
-            dc = JSON.parse(localStorage.getItem('odysseus-default-chat-cache') || 'null');
+            dc = JSON.parse(localStorage.getItem('param-default-chat-cache') || 'null');
           } catch (_) {}
         }
         try {
@@ -1398,13 +1398,13 @@ import { loadPanel } from './panels.js';
             _sendPerf.mark('default_chat_fetch_done');
             if (dc && dc.endpoint_url && dc.model) {
               try {
-                window.__odysseusDefaultChat = dc;
-                localStorage.setItem('odysseus-default-chat-cache', JSON.stringify(dc));
+                window.__paramDefaultChat = dc;
+                localStorage.setItem('param-default-chat-cache', JSON.stringify(dc));
               } catch (_) {}
             }
           }
         } catch (_) {
-          dc = (typeof window !== 'undefined' && window.__odysseusDefaultChat) || null;
+          dc = (typeof window !== 'undefined' && window.__paramDefaultChat) || null;
         }
         if (dc.endpoint_url && dc.model) {
           _sendPerf.mark('direct_chat_create_begin');
@@ -1478,7 +1478,7 @@ import { loadPanel } from './panels.js';
     _sendInFlight = false;
 
     try {
-      const pendingSwitch = window.__odysseusModelSwitchPromise;
+      const pendingSwitch = window.__paramModelSwitchPromise;
       if (pendingSwitch && typeof pendingSwitch.then === 'function') {
         await pendingSwitch;
       }
@@ -1494,7 +1494,7 @@ import { loadPanel } from './panels.js';
 
     // Acquire Web Lock to hint browser not to discard this tab while streaming
     if (navigator.locks) {
-      navigator.locks.request('odysseus-stream-' + streamSessionId, { mode: 'exclusive', ifAvailable: true }, lock => {
+      navigator.locks.request('param-stream-' + streamSessionId, { mode: 'exclusive', ifAvailable: true }, lock => {
         if (!lock) return; // Another stream already holds a lock — fine
         return new Promise(resolve => { _webLockRelease = resolve; });
       }).catch(e => console.warn('web lock acquire failed:', e)); // Ignore lock errors — best-effort
@@ -1845,6 +1845,12 @@ import { loadPanel } from './panels.js';
         } catch (_) { /* fall back to the manually selected route */ }
       }
 
+      if (!approvalForSend && _finalMsgWithInject && autoModelRouter.triggerBrainModelNotification) {
+        try {
+          autoModelRouter.triggerBrainModelNotification(_finalMsgWithInject, ids.length > 0, selectedRouteForSend.model);
+        } catch (_) {}
+      }
+
       const fd = new FormData();
       fd.append('message', approvalForSend ? '' : _finalMsgWithInject);
       fd.append('session', streamSessionId);
@@ -1880,7 +1886,7 @@ import { loadPanel } from './panels.js';
       // resolve to the email the user is actually looking at instead of
       // making the agent invent a new markdown draft with fake headers.
       try {
-        const getEmailCtx = window.__odysseusGetActiveEmailContext;
+        const getEmailCtx = window.__paramGetActiveEmailContext;
         const emCtx = typeof getEmailCtx === 'function' ? getEmailCtx() : null;
         if (activeEmailComposerCtx && activeEmailComposerCtx.sourceUid) {
           fd.append('active_email_uid', String(activeEmailComposerCtx.sourceUid));
@@ -2150,7 +2156,7 @@ import { loadPanel } from './panels.js';
         enableResearchBtn();
         return;
       }
-      const streamRunId = res.headers.get('X-Odysseus-Run-Id') || '';
+      const streamRunId = res.headers.get('X-Param-Run-Id') || '';
       if (streamRunId) _rememberStreamRunId(streamSessionId, streamRunId, streamGeneration);
 
       // Mark the chat log busy while streaming so screen readers wait for the
@@ -4663,7 +4669,7 @@ import { loadPanel } from './panels.js';
             if (_box && sessionModule.getCurrentSessionId() === _timeoutSessionId) {
               var _timeoutMsg = document.createElement('div');
               _timeoutMsg.className = 'msg msg-ai';
-              _timeoutMsg.innerHTML = '<div class="role">Odysseus</div><div class="body" style="opacity:0.6;font-style:italic;">Research clarification timed out. Toggle research again to start over.</div>';
+              _timeoutMsg.innerHTML = '<div class="role">Param</div><div class="body" style="opacity:0.6;font-style:italic;">Research clarification timed out. Toggle research again to start over.</div>';
               _box.appendChild(_timeoutMsg);
               uiModule.scrollHistory();
             }
@@ -4976,7 +4982,7 @@ import { loadPanel } from './panels.js';
       return false;
     }
     if (!res.ok || !res.body) return false;
-    const resumeRunId = res.headers.get('X-Odysseus-Run-Id') || '';
+    const resumeRunId = res.headers.get('X-Param-Run-Id') || '';
     if (resumeRunId) _streamRunIds.set(sessionId, resumeRunId);
 
     const box = document.getElementById('chat-history');
@@ -5335,7 +5341,7 @@ import { loadPanel } from './panels.js';
         if (!on) {
           const label = document.getElementById('model-picker-label');
           if (label && label.textContent.indexOf('Auto') === 0) {
-            const dc = window.__odysseusDefaultChat;
+            const dc = window.__paramDefaultChat;
             label.textContent = dc && dc.model ? String(dc.model).split('/').pop() : 'Select model';
           }
         }
@@ -6760,7 +6766,7 @@ import { loadPanel } from './panels.js';
   // streaming, history-rendered, compare-mode, all of them. Re-attaching
   // per-node listeners on every innerHTML rewrite was the source of the
   // "needs many clicks" bug.
-  if (!window.__odysseus_thread_click_bound) {
+  if (!window.__param_thread_click_bound) {
     document.body.addEventListener('click', (e) => {
       const header = e.target.closest('.agent-thread-header');
       if (!header) return;
@@ -6777,7 +6783,7 @@ import { loadPanel } from './panels.js';
         }
       }
     });
-    window.__odysseus_thread_click_bound = true;
+    window.__param_thread_click_bound = true;
   }
 
   export default chatModule;

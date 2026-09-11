@@ -12,6 +12,7 @@ import { bindMenuDismiss } from './escMenuStack.js';
 import { loadPanel } from './panels.js';
 import { matchModelKey } from './model/matchKey.js';
 import { getTools } from './appConfig.js';
+import * as demoChat from './demoChat.js';
 
 const SEARCH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>';
 const REPORT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>';
@@ -930,7 +931,7 @@ export function getImageCost(model, quality, size) {
 const _COST_KEY = 'ody-session-cost';
 const _COST_RUNS_KEY = 'ody-session-cost-runs';
 const _MAX_COST_RUNS_PER_SESSION = 256;
-const _COST_LEDGER_LOCK = 'odysseus-session-cost-ledger';
+const _COST_LEDGER_LOCK = 'param-session-cost-ledger';
 
 /** Return the accumulated cost for the current (or given) session. */
 export function getSessionCost(sessionId) {
@@ -1665,6 +1666,7 @@ export function showWelcomeScreen() {
   const alreadyVisible = !!(ws && !ws.classList.contains('hidden'));
   if (ws) ws.classList.remove('hidden');
   if (cc) cc.classList.add('welcome-active');
+
   if (alreadyVisible) {
     return;
   }
@@ -1701,7 +1703,7 @@ export function showWelcomeScreen() {
 }
 
 // ── Dynamic action buttons (show 3 most recent, rest under ···) ──
-const _ACTION_RECENTS_KEY = 'odysseus-msg-actions-recent';
+const _ACTION_RECENTS_KEY = 'param-msg-actions-recent';
 const _MAX_VISIBLE = 2;
 
 function _getRecentActions() {
@@ -1917,7 +1919,7 @@ export function createMsgFooter(msgElement) {
 /**
  * Create a footer row for a user message with action buttons (same system as AI footer).
  */
-const _USER_ACTION_RECENTS_KEY = 'odysseus-user-actions-recent';
+const _USER_ACTION_RECENTS_KEY = 'param-user-actions-recent';
 
 function _getUserRecentActions() {
   try { return JSON.parse(localStorage.getItem(_USER_ACTION_RECENTS_KEY) || '[]'); } catch { return []; }
@@ -2214,7 +2216,7 @@ export function displayMetrics(messageElement, metrics) {
           compactMsg.className = 'msg msg-ai';
           const compactRole = document.createElement('div');
           compactRole.className = 'role';
-          compactRole.textContent = 'Odysseus';
+          compactRole.textContent = 'Param';
           const compactBody = document.createElement('div');
           compactBody.className = 'body';
           compactBody.innerHTML = 'Compacting context <span class="compact-wave">▁▂▃▅▂▁</span>';
@@ -2502,7 +2504,7 @@ export function renderAskUserCard(payload, options) {
             if (accepted !== false) card.remove();
           } else {
             card.remove();
-            document.dispatchEvent(new CustomEvent('odysseus:tool-approval', { detail }));
+            document.dispatchEvent(new CustomEvent('param:tool-approval', { detail }));
           }
         } else {
           send(label);
@@ -2563,6 +2565,11 @@ export function addMessage(role, content, modelName, metadata) {
     hideWelcomeScreen();
     const box = document.getElementById('chat-history');
     if (!box) { console.error('Chat history element not found'); return; }
+
+    // Clear demo chat if a real message is being added
+    if (!metadata?._isDemo && box.querySelector('[data-demo="true"]')) {
+      try { demoChat.clearDemoChatIfPresent(); } catch (_) {}
+    }
 
     // Loading a later user message means any earlier ask_user card was
     // answered.  This also removes the live card as soon as a manual reply is
@@ -2793,7 +2800,7 @@ export function addMessage(role, content, modelName, metadata) {
     const isCompacted = metadata?.compacted;
     const replyModels = replyModelPair(modelName, metadata);
     const resolvedModel = replyModels.actualModel || replyModels.requestedModel;
-    var _roleText = role === 'user' ? 'You' : (isSlash || isCompacted) ? 'Odysseus' : modelRouteLabel(
+    var _roleText = role === 'user' ? 'You' : (isSlash || isCompacted) ? 'Param' : modelRouteLabel(
       replyModels.requestedModel,
       resolvedModel,
       replyModels.requestedEndpointLabel,
@@ -3121,6 +3128,7 @@ const chatRenderer = {
   addMessage,
   buildAttachCards,
   updateMessageAttachments,
+  demoChat,
 };
 
 export default chatRenderer;

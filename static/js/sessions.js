@@ -26,7 +26,7 @@ const SIDEBAR_MAX_VISIBLE = 10;
 const FOLDER_MAX_VISIBLE = 5;
 let _showAllSessions = false;
 let _expandedFolders = {};  // folderName -> true if "show more" clicked
-let _sortMode = Storage.get('odysseus-session-sort') || 'active'; // default to last active
+let _sortMode = Storage.get('param-session-sort') || 'active'; // default to last active
 const DATE_SECTION_COLLAPSE_KEY = 'ody-session-date-section-collapsed';
 let _autoCreateInProgress = false; // guard against recursive auto-create
 const _INCOGNITO_SESSIONS_KEY = 'ody-incognito-sessions'; // sessionStorage key for incognito session IDs
@@ -36,7 +36,7 @@ let _historyPager = null;
 
 function _shouldPreserveStartupComposer(msgInput) {
   if (!msgInput || !msgInput.value) return false;
-  if (window.__odysseusComposerUserEdited) return true;
+  if (window.__paramComposerUserEdited) return true;
   return !!document.getElementById('app-loader') && document.activeElement === msgInput;
 }
 
@@ -342,8 +342,8 @@ function _normalizeSessionsList(fetched) {
 export function initDependencies() {}
 
 // ── Folder state persistence ──
-const FOLDER_STATE_KEY = 'odysseus-folder-state';
-const FOLDER_ORDER_KEY = 'odysseus-folder-order';
+const FOLDER_STATE_KEY = 'param-folder-state';
+const FOLDER_ORDER_KEY = 'param-folder-order';
 
 function loadFolderState() {
   return Storage.getJSON(FOLDER_STATE_KEY, {});
@@ -966,6 +966,43 @@ function createSessionItem(s) {
   return div;
 }
 
+function createDemoSessionItem(id = 'demo-chat', title = 'Demo: PDF Key Findings', type = 'pdf') {
+  const div = document.createElement('div');
+  const isActive = currentSessionId === id;
+  div.className = 'list-item session-item demo-session-item' + (isActive ? ' active active-session' : '');
+  div.setAttribute('role', 'option');
+  div.setAttribute('tabindex', '-1');
+  div.setAttribute('data-session-id', id);
+
+  const star = document.createElement('span');
+  star.className = 'session-star demo-star';
+  star.style.opacity = '1';
+  if (type === 'code') {
+    star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+  } else {
+    star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+  }
+  div.appendChild(star);
+
+  const span = document.createElement('span');
+  span.className = 'grow text-ellipsis';
+  span.textContent = title;
+  span.title = title;
+  div.appendChild(span);
+
+  const badge = document.createElement('span');
+  badge.className = 'demo-pill-badge';
+  badge.textContent = 'Demo';
+  div.appendChild(badge);
+
+  div.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectSession(id);
+  });
+
+  return div;
+}
+
 function _dateBucketLabel(value) {
   if (!value) return 'Older';
   const d = new Date(value);
@@ -1105,6 +1142,10 @@ function _renderSessionListImpl() {
   document.querySelectorAll('.session-dropdown, .folder-submenu').forEach(d => d.remove());
 
   const _frag = document.createDocumentFragment();
+
+  // Always include the Demo Chat items at the top of the Chats list
+  _frag.appendChild(createDemoSessionItem('demo-chat', 'Demo: PDF Key Findings', 'pdf'));
+  _frag.appendChild(createDemoSessionItem('demo-code', 'Demo: Code & Sandbox Run', 'code'));
 
   // ── Flat sort modes: ignore folders, show one ordered list. ──
   // Folders are only shown when _sortMode === 'group' (or null/empty
@@ -1743,7 +1784,7 @@ export async function loadSessions() {
       // completions call loadSessions() later; without this guard that reload
       // sees no current session and auto-selects the previous chat.
       targetId = null;
-    } else if (hashId && activeSessions.some(s => s.id === hashId)) {
+    } else if (hashId && (hashId === 'demo-chat' || hashId === 'demo-code' || activeSessions.some(s => s.id === hashId))) {
       targetId = hashId;
     } else if (currentSessionId && activeSessions.some(s => s.id === currentSessionId)) {
       targetId = currentSessionId;
@@ -1838,6 +1879,42 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     window.compareModule.deactivate(true);
     return; // deactivate does a page reload
   }
+  if (id === 'demo-chat' || id === 'demo-code') {
+    currentSessionId = id;
+    try { window.__paramLastSelectedSessionId = id; } catch (_) {}
+    if (window.location.hash !== '#' + id) {
+      history.replaceState(null, '', '#' + id);
+    }
+    const chatHistory = document.getElementById('chat-history');
+    if (chatHistory) {
+      chatHistory.innerHTML = '';
+      chatHistory.classList.remove('no-animate');
+      chatHistory.style.opacity = '1';
+    }
+    const metaEl = document.getElementById('current-meta');
+    if (metaEl) {
+      metaEl.textContent = id === 'demo-code' ? 'Demo: Code & Sandbox Run' : 'Demo: PDF Key Findings';
+    }
+
+    document.querySelectorAll('.session-item.active, .session-item.active-session').forEach(el => el.classList.remove('active', 'active-session'));
+    document.querySelector(`[data-session-id="${id}"]`)?.classList.add('active', 'active-session');
+
+    if (window.chatRenderer && window.chatRenderer.hideWelcomeScreen) {
+      window.chatRenderer.hideWelcomeScreen();
+    }
+    const demoMod = await import('./demoChat.js');
+    if (id === 'demo-code') {
+      demoMod.renderCodeDemoChat(true);
+    } else {
+      demoMod.renderDemoChat(true);
+    }
+
+    if (!keepSidebar && window.innerWidth <= 768) {
+      const sb = document.getElementById('sidebar');
+      if (sb) sb.classList.add('hidden');
+    }
+    return;
+  }
   try {
     const navToken = ++_sessionNavToken;
     const prevSessionId = currentSessionId;
@@ -1856,10 +1933,10 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
       try { window.documentModule.clearSelection(); } catch {}
     }
     currentSessionId = id;
-    try { window.__odysseusLastSelectedSessionId = id; } catch (_) {}
+    try { window.__paramLastSelectedSessionId = id; } catch (_) {}
     // Identify Assistant / task-output sessions so we don't "trap" the user
     // there on return. Skipped from both `lastSessionId` persistence and the
-    // URL hash — the user complained that coming back to Odysseus kept
+    // URL hash — the user complained that coming back to Param kept
     // landing them on the auto-firing task-log chat instead of their last
     // real conversation.
     const _meta = sessions.find(s => s.id === id);
@@ -2114,7 +2191,7 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     if (window.documentModule) {
       const docBtn = document.getElementById('overflow-doc-btn');
       const meta = sessions.find(s => s.id === id);
-      const shouldOpen = localStorage.getItem('odysseus-doc-open-' + id) === '1';
+      const shouldOpen = localStorage.getItem('param-doc-open-' + id) === '1';
       const hasDocs = !!(meta && meta.has_documents);
       if (docBtn) {
         docBtn.classList.remove('active');
@@ -2149,8 +2226,8 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     // is idle.
     if (window.memoryModule && window.memoryModule.loadMemories) {
       setTimeout(() => {
-        const busy = !!window.__odysseusChatBusy
-          || Date.now() < (window.__odysseusChatBusyUntil || 0)
+        const busy = !!window.__paramChatBusy
+          || Date.now() < (window.__paramChatBusyUntil || 0)
           || !!document.querySelector('.send-btn[data-mode="streaming"], .send-btn.send-pending');
         if (!busy) window.memoryModule.loadMemories().catch(() => {});
       }, 2500);
@@ -2174,11 +2251,11 @@ let _pendingMaterializePromise = null;
 async function _getPreferredDefaultChat() {
   let dc = null;
   try {
-    dc = window.__odysseusDefaultChat || null;
+    dc = window.__paramDefaultChat || null;
   } catch (_) {}
   if (!dc || !dc.endpoint_url || !dc.model) {
     try {
-      dc = JSON.parse(localStorage.getItem('odysseus-default-chat-cache') || 'null');
+      dc = JSON.parse(localStorage.getItem('param-default-chat-cache') || 'null');
     } catch (_) {}
   }
   if (dc && dc.endpoint_url && dc.model) return dc;
@@ -2187,8 +2264,8 @@ async function _getPreferredDefaultChat() {
     dc = await dcRes.json();
     if (dc && dc.endpoint_url && dc.model) {
       try {
-        window.__odysseusDefaultChat = dc;
-        localStorage.setItem('odysseus-default-chat-cache', JSON.stringify(dc));
+        window.__paramDefaultChat = dc;
+        localStorage.setItem('param-default-chat-cache', JSON.stringify(dc));
       } catch (_) {}
       return dc;
     }
@@ -2225,7 +2302,7 @@ export function createDirectChat(url, modelId, endpointId, opts = {}) {
   _skipAutoSelect = true;
   _suppressNextSessionLoading = true;
   currentSessionId = null;
-  try { window.__odysseusLastSelectedSessionId = ''; } catch (_) {}
+  try { window.__paramLastSelectedSessionId = ''; } catch (_) {}
   Storage.remove('lastSessionId');
   history.replaceState(null, '', window.location.pathname);
   document.querySelectorAll('.list-item.active-session, .session-item.active').forEach(el => {
@@ -2405,7 +2482,7 @@ export function getCurrentEndpointUrl() {
 export function setCurrentSessionId(id) {
   _sessionNavToken++;
   currentSessionId = id;
-  try { window.__odysseusLastSelectedSessionId = id || ''; } catch (_) {}
+  try { window.__paramLastSelectedSessionId = id || ''; } catch (_) {}
   if (!id) {
     _suppressNextSessionLoading = true;
     Storage.remove('lastSessionId');
@@ -3637,8 +3714,8 @@ export function closeArchive() {
 export function getSortMode() { return _sortMode; }
 export function setSortMode(mode) {
   _sortMode = mode || null;
-  if (mode) Storage.set('odysseus-session-sort', mode);
-  else Storage.remove('odysseus-session-sort');
+  if (mode) Storage.set('param-session-sort', mode);
+  else Storage.remove('param-session-sort');
   renderSessionList();
 }
 

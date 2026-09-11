@@ -165,8 +165,8 @@ function _activateSpaceCard(card) {
 }
 
 function _initHoverCardSpaceToggle() {
-  if (document._odysseusHoverCardSpaceToggle) return;
-  document._odysseusHoverCardSpaceToggle = true;
+  if (document._paramHoverCardSpaceToggle) return;
+  document._paramHoverCardSpaceToggle = true;
   document.addEventListener('pointerover', (e) => {
     _lastPointerClientX = e.clientX;
     _lastPointerClientY = e.clientY;
@@ -328,6 +328,12 @@ export function showToast(msg, durationOrOpts) {
     const icon = wp.element;
     icon.classList.add('toast-whirlpool');
     icon.style.cssText = 'width:14px;height:14px;margin:0 8px 0 0;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;';
+    toastEl.appendChild(icon);
+  } else if (leadingIcon === 'brain') {
+    const icon = document.createElement('span');
+    icon.className = 'toast-brain-icon';
+    icon.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg>';
+    icon.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;margin:0 8px 0 0;flex:0 0 auto;';
     toastEl.appendChild(icon);
   }
   textSpan.textContent = msg;

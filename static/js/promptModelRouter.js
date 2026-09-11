@@ -1,7 +1,9 @@
 // Automatic model selector — heuristically picks the best already-configured
 // model for a given prompt. Pure keyword/length matching, no extra LLM call.
 
-const AUTO_MODEL_KEY = 'odysseus-auto-model-enabled';
+import uiModule from './ui.js';
+
+const AUTO_MODEL_KEY = 'param-auto-model-enabled';
 
 export function isAutoModelEnabled() {
   try { return localStorage.getItem(AUTO_MODEL_KEY) === '1'; } catch (_) { return false; }
@@ -82,3 +84,81 @@ export function chooseModelForPrompt(text, hasImageAttachment = false) {
   const picked = pickBestModel(category, flattenAvailableModels());
   return picked ? { ...picked, category } : null;
 }
+
+let _brainTimer = null;
+let _lastBrainTrigger = 0;
+
+export function triggerBrainModelNotification(promptText, hasImageAttachment = false, fallbackModel = '') {
+  if (typeof document === 'undefined') return;
+  const now = Date.now();
+  if (now - _lastBrainTrigger < 800) return;
+  _lastBrainTrigger = now;
+
+  const brainBtn = document.getElementById('tool-memory-btn');
+  if (brainBtn) {
+    brainBtn.classList.remove('brain-selected');
+    brainBtn.classList.add('brain-analyzing');
+  }
+
+  if (_brainTimer) {
+    clearTimeout(_brainTimer);
+    _brainTimer = null;
+  }
+
+  // Phase 1: Immediate visual feedback that Brain is analyzing prompt
+  if (uiModule && typeof uiModule.showToast === 'function') {
+    uiModule.showToast('Brain: Analyzing prompt & routing model...', {
+      duration: 1800,
+      leadingIcon: 'spinner'
+    });
+  }
+
+  // Phase 2: Announce model chosen according to user prompt
+  _brainTimer = setTimeout(() => {
+    try {
+      const category = classifyPrompt(promptText, hasImageAttachment);
+      const categoryTitles = {
+        code: 'Code Logic',
+        reasoning: 'Deep Reasoning',
+        vision: 'Vision Multimodal',
+        fast: 'Quick Response',
+        general: 'General Tasks'
+      };
+      const taskName = categoryTitles[category] || 'Reasoning';
+
+      let modelName = '';
+      const picked = chooseModelForPrompt(promptText, hasImageAttachment);
+      if (picked && (picked.display || picked.mid)) {
+        modelName = picked.display || picked.mid.split('/').pop().replace(/:latest$/, '');
+      } else if (fallbackModel) {
+        modelName = fallbackModel.split('/').pop().replace(/:latest$/, '');
+      } else if (window.sessionModule && typeof window.sessionModule.getCurrentModel === 'function') {
+        const cur = window.sessionModule.getCurrentModel();
+        if (cur) modelName = cur.split('/').pop().replace(/:latest$/, '');
+      }
+      if (!modelName) modelName = 'Optimal Model';
+
+      if (uiModule && typeof uiModule.showToast === 'function') {
+        uiModule.showToast(`Brain: Selected ${modelName} for ${taskName}`, {
+          duration: 3800,
+          leadingIcon: 'brain'
+        });
+      }
+
+      if (brainBtn) {
+        brainBtn.classList.remove('brain-analyzing');
+        brainBtn.classList.add('brain-selected');
+        setTimeout(() => {
+          brainBtn.classList.remove('brain-selected');
+        }, 2200);
+      }
+    } catch (_) {
+      if (brainBtn) brainBtn.classList.remove('brain-analyzing');
+    }
+  }, 650);
+}
+
+if (typeof window !== 'undefined') {
+  window._triggerBrainRoutingNotification = triggerBrainModelNotification;
+}
+

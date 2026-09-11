@@ -842,6 +842,12 @@ function initializeEventListeners() {
       console.warn('fresh chat stream detach failed:', e);
     }
     if (sessionModule) sessionModule.setCurrentSessionId(null);
+    if (window.location.hash === '#demo-chat' || window.location.hash === '#demo-code' || window.location.hash === '#demo-mrpl' || window.location.hash === '#demo-ppt') {
+      history.replaceState(null, '', window.location.pathname);
+    }
+    const metaEl = el('current-meta');
+    if (metaEl) metaEl.textContent = 'परम Chat';
+    document.querySelectorAll('.session-item.active, .session-item.active-session').forEach(s => s.classList.remove('active', 'active-session'));
     const box = el('chat-history');
     if (box) box.innerHTML = '';
     if (chatModule && chatModule.showWelcomeScreen) {

@@ -11,13 +11,6 @@
   <a href="ROADMAP.md">Roadmap</a>
 </p>
 
-<p align="center">
-  <a href="https://repology.org/project/param-ai/versions"><img src="https://repology.org/badge/vertical-allrepos/param-ai.svg" alt="Packaging status"></a>
-</p>
-
-<p align="center">
-  <img src="docs/param-browser.jpg" alt="Param interface">
-</p>
 
 ---
 

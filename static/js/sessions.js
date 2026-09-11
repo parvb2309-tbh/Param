@@ -983,6 +983,9 @@ function createDemoSessionItem(id = 'demo-chat', title = 'Demo Chat', type = 'pd
   } else if (type === 'mrpl') {
     star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/></svg>';
     star.title = 'Demo: Mangalore Refinery and Petrochemicals Limited (MRPL) — Supervisor Tool Approval';
+  } else if (type === 'ppt') {
+    star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+    star.title = 'Demo: PDF Document to PowerPoint Deck';
   } else {
     star.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
     star.title = 'Demo: PDF Analysis & File Summary';
@@ -996,7 +999,9 @@ function createDemoSessionItem(id = 'demo-chat', title = 'Demo Chat', type = 'pd
     ? 'Demo: Industry Code & Sandbox Run'
     : (type === 'mrpl'
         ? 'Demo: Mangalore Refinery and Petrochemicals Limited (MRPL) — Supervisor Tool Approval'
-        : 'Demo: PDF Analysis & File Summary');
+        : (type === 'ppt'
+            ? 'Demo: PDF Document to PowerPoint Deck'
+            : 'Demo: PDF Analysis & File Summary'));
   div.appendChild(span);
 
   const badge = document.createElement('span');
@@ -1156,6 +1161,7 @@ function _renderSessionListImpl() {
   _frag.appendChild(createDemoSessionItem('demo-chat', 'Demo: PDF Analysis', 'pdf'));
   _frag.appendChild(createDemoSessionItem('demo-code', 'Demo: Code & Sandbox', 'code'));
   _frag.appendChild(createDemoSessionItem('demo-mrpl', 'Demo: MRPL Refinery Approval', 'mrpl'));
+  _frag.appendChild(createDemoSessionItem('demo-ppt', 'Demo: PDF to PPT Deck', 'ppt'));
 
   // ── Flat sort modes: ignore folders, show one ordered list. ──
   // Folders are only shown when _sortMode === 'group' (or null/empty
@@ -1762,7 +1768,7 @@ export async function loadSessions() {
       demoBtn._demoWired = true;
       demoBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const demoOrder = ['demo-chat', 'demo-code', 'demo-mrpl'];
+        const demoOrder = ['demo-chat', 'demo-code', 'demo-mrpl', 'demo-ppt'];
         const nextIndex = (demoOrder.indexOf(currentSessionId) + 1) % demoOrder.length;
         selectSession(demoOrder[nextIndex >= 0 ? nextIndex : 0]);
       });
@@ -1789,7 +1795,7 @@ export async function loadSessions() {
     // If the persisted lastSessionId points to a transient session (legacy
     // state from before the persistence-guard was added) or demo chat, drop it.
     if (savedId) {
-      if (savedId === 'demo-chat' || savedId === 'demo-code' || savedId === 'demo-mrpl') {
+      if (savedId === 'demo-chat' || savedId === 'demo-code' || savedId === 'demo-mrpl' || savedId === 'demo-ppt') {
         Storage.remove('lastSessionId');
         savedId = null;
       } else {
@@ -1808,7 +1814,7 @@ export async function loadSessions() {
       // completions call loadSessions() later; without this guard that reload
       // sees no current session and auto-selects the previous chat.
       targetId = null;
-    } else if (hashId && (hashId === 'demo-chat' || hashId === 'demo-code' || hashId === 'demo-mrpl' || activeSessions.some(s => s.id === hashId))) {
+    } else if (hashId && (hashId === 'demo-chat' || hashId === 'demo-code' || hashId === 'demo-mrpl' || hashId === 'demo-ppt' || activeSessions.some(s => s.id === hashId))) {
       targetId = hashId;
     } else if (currentSessionId && activeSessions.some(s => s.id === currentSessionId)) {
       targetId = currentSessionId;
@@ -1903,7 +1909,7 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     window.compareModule.deactivate(true);
     return; // deactivate does a page reload
   }
-  if (id === 'demo-chat' || id === 'demo-code' || id === 'demo-mrpl') {
+  if (id === 'demo-chat' || id === 'demo-code' || id === 'demo-mrpl' || id === 'demo-ppt') {
     currentSessionId = id;
     try { window.__paramLastSelectedSessionId = id; } catch (_) {}
     if (window.location.hash !== '#' + id) {
@@ -1917,7 +1923,9 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     }
     const metaEl = document.getElementById('current-meta');
     if (metaEl) {
-      if (id === 'demo-mrpl') {
+      if (id === 'demo-ppt') {
+        metaEl.textContent = 'Demo: PDF to PPT Deck';
+      } else if (id === 'demo-mrpl') {
         metaEl.textContent = 'Demo: MRPL Refinery Supervisor Approval';
       } else if (id === 'demo-code') {
         metaEl.textContent = 'Demo: Code & Sandbox Run';
@@ -1932,7 +1940,10 @@ export async function selectSession(id, { keepSidebar = false, showLoading = tru
     if (window.chatRenderer && window.chatRenderer.hideWelcomeScreen) {
       window.chatRenderer.hideWelcomeScreen();
     }
-    if (id === 'demo-mrpl') {
+    if (id === 'demo-ppt') {
+      const demoMod = await import('./demoChat.js');
+      demoMod.renderPPTDemoChat(true);
+    } else if (id === 'demo-mrpl') {
       const demoMod = await import('./demoChat.js');
       demoMod.renderMRPLDemoChat(true);
     } else if (id === 'demo-code') {

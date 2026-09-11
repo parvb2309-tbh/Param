@@ -41712,3 +41712,142 @@ body.settings-sidebar-resize-active {
   padding-right: 4px;
 }
 
+/* PPT Demo Presentation Viewer & Download Card */
+.ppt-demo-card {
+  margin: 12px 0 16px 0;
+  border-radius: 12px;
+  background: var(--bg-secondary, rgba(30, 41, 59, 0.7));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-family: inherit;
+}
+.ppt-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+.ppt-card-title-flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #f1f5f9);
+}
+.ppt-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: #d97706;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+.ppt-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--accent, #e06c75);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  text-decoration: none;
+}
+.ppt-download-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.ppt-slide-stage {
+  padding: 20px 24px;
+  min-height: 220px;
+  background: #0f172a;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ppt-slide-header-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #e06c75;
+  margin-bottom: 6px;
+}
+.ppt-slide-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.ppt-slide-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+.ppt-slide-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.ppt-stat-box {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+.ppt-stat-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: #e06c75;
+}
+.ppt-stat-label {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.ppt-slide-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(15, 23, 42, 0.4);
+}
+.ppt-ctrl-btn {
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  color: var(--text-primary, #f1f5f9);
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.12s ease;
+}
+.ppt-ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.ppt-slide-indicator {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+}
+

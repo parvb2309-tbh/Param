@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="docs/param-wordmark.png" alt="Param" width="238">
-</p>
+
 
 <p align="center">
   A self-hosted AI workspace for chat, agents, research, documents, email, notes, calendar, and local model workflows.

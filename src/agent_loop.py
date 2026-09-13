@@ -1046,6 +1046,14 @@ def _agent_route_tool_mode(
         "llama-3.3", "llama-4", "llama3.1", "llama3.2", "llama3.3", "llama4",
         "minimax", "kimi", "yi-", "phi-3", "phi-4", "command-r",
         "glm-4", "internlm", "hermes", "deepseek-v", "deepseek-chat",
+        # Common tool-capable small/local models (6-7B range)
+        "qwen2", "qwen:7", "qwen:14", "qwen:32",
+        "llama3", "llama-3", "llama:7", "llama:8", "llama:13",
+        "phi3", "phi-3.5", "phi4",
+        "mistral:7", "mistral:8", "mixtral:8",
+        "smollm", "smol-lm", "functionary", "nexusraven",
+        "llama3.2", "llama3.1", "llama3.3",
+        "granite3", "granite-3",
     ))
     model_no_tools = any(kw in model_lc for kw in (
         "deepseek-r1",
@@ -1055,13 +1063,15 @@ def _agent_route_tool_mode(
     ollama_openai_compat = _is_ollama_openai_compat_url(endpoint_url or "")
     if endpoint_supports is True:
         is_api_model = True
-    elif (
-        endpoint_supports is False
-        or model_no_tools
-        or is_ollama_native
-        or ollama_openai_compat
-    ):
+    elif endpoint_supports is False or model_no_tools:
+        # Explicit DB override (False) or hard-coded no-tools model: always
+        # fall back to the fenced-block tool path regardless of URL type.
         is_api_model = False
+    elif is_ollama_native or ollama_openai_compat:
+        # Local/Ollama endpoint: use native tool-call protocol only when the
+        # model name is a known tool-capable variant.  Unknown models keep the
+        # old text-block path so we don't break them with schema spam.
+        is_api_model = model_supports_tools
     else:
         is_api_model = any(host in endpoint_url for host in _API_HOSTS) or model_supports_tools
     return is_api_model, is_ollama_native, ollama_openai_compat

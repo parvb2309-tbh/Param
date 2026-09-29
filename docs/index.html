@@ -174,16 +174,15 @@
   .shot .frame-dots { position: absolute; top: 10px; left: 12px; display: flex; gap: 5px; }
   .shot .frame-dots i { width: 8px; height: 8px; border-radius: 50%; background: #39414d; display: inline-block; }
 
-  /* Previews — expanding hover carousel that plays a video on hover/tap */
-  .previews { display: flex; align-items: center; gap: 12px; height: 480px; max-width: 1200px; margin: 36px auto 0; }
+  /* Previews — grid of cards; the video shows its first frame and plays on hover/tap */
+  .previews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 36px auto 0; }
   .preview-panel {
-    position: relative; flex: 1 1 0; min-width: 0; height: 360px; overflow: hidden;
-    border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+    position: relative; aspect-ratio: 16/10; overflow: hidden; cursor: pointer;
+    border: 1px solid var(--border); border-radius: var(--radius);
     background: linear-gradient(180deg, var(--panel), var(--panel2));
-    transition: flex-grow .5s cubic-bezier(.2,.7,.2,1), height .5s cubic-bezier(.2,.7,.2,1), border-color .25s ease;
+    transition: border-color .25s ease, transform .2s ease;
   }
-  .previews:hover .preview-panel { flex-grow: 0.9; height: 300px; }
-  .preview-panel:hover, .preview-panel:focus-visible, .preview-panel.is-active { flex-grow: 3.4 !important; height: 480px !important; border-color: var(--accent); }
+  .preview-panel:hover, .preview-panel:focus-visible, .preview-panel.is-active { border-color: var(--accent); transform: translateY(-3px); }
   .preview-panel .ph {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 10px;
@@ -191,37 +190,19 @@
   }
   .preview-panel video {
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-    z-index: 1; opacity: 0; transition: opacity .3s ease; background: transparent;
+    z-index: 1; background: #111;
   }
-  .preview-panel.has-video video { opacity: 1; }
-  /* These clips have their action on the left, so show the left edge instead of
-     the centered crop. */
-  .preview-panel:has(source[src="document.webm"]) video,
-  .preview-panel:has(source[src="notes.webm"]) video { object-position: right center; }
   .preview-panel .label {
-    position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 14px 16px;
-    background: linear-gradient(0deg, rgba(0,0,0,0.82), transparent);
+    position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 28px 16px 14px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.88), transparent);
     color: var(--heading);
     display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
   }
-  .preview-panel .label .t { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-weight: 700; font-size: 14px; }
+  .preview-panel .label .t { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14.5px; }
   .preview-panel .label .ico { color: var(--accent); flex-shrink: 0; }
-  .preview-panel .label .t .tt { overflow: hidden; text-overflow: ellipsis; max-width: 0; opacity: 0; transition: max-width .4s ease, opacity .3s ease; }
-  .preview-panel:hover .label .t .tt, .preview-panel:focus-visible .label .t .tt, .preview-panel.is-active .label .t .tt { max-width: 220px; opacity: 1; }
-  .preview-panel .label .desc {
-    font-weight: 400; font-size: 12.5px; line-height: 1.35; color: rgba(255,255,255,0.82);
-    white-space: normal; max-height: 0; opacity: 0; overflow: hidden;
-    transition: max-height .4s ease, opacity .4s ease;
-  }
-  .preview-panel:hover .label .desc, .preview-panel:focus-visible .label .desc, .preview-panel.is-active .label .desc { max-height: 64px; opacity: 1; }
-  @media (max-width: 760px) {
-    .previews { flex-direction: column; height: auto; touch-action: pan-y; }
-    .preview-panel { height: 190px; flex: none; width: 100%; }
-    .preview-panel.is-active { height: 280px !important; }
-    .previews:hover .preview-panel, .preview-panel:hover { flex: none !important; }
-    .preview-panel .label .desc { max-height: 64px; opacity: 1; }
-    .preview-panel .label .t .tt { max-width: 220px; opacity: 1; }
-  }
+  .preview-panel .label .desc { font-weight: 400; font-size: 12.5px; line-height: 1.35; color: rgba(255,255,255,0.82); }
+  @media (max-width: 900px) { .previews { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .previews { grid-template-columns: 1fr; } }
 
   /* Get started */
   .start {
@@ -368,42 +349,38 @@
     <div class="wrap">
       <div class="center">
         <div class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>See it in action</div>
-        <h2 class="h">Hover or tap to take a closer look</h2>
-        <p class="sub center">Each panel expands and plays its preview when you hover or tap it. Swipe on mobile to move through them.</p>
+        <h2 class="h">A quick look at what it can do</h2>
+        <p class="sub center">Hover or tap a card to play its preview.</p>
       </div>
       <div class="previews">
         <div class="preview-panel" tabindex="0">
           <div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>[ Chat &amp; Agents ]</span></div>
-          <video muted loop playsinline preload="none"><source src="chat.webm" type="video/webm"><source src="chat.mp4" type="video/mp4"></video>
+          <video muted loop playsinline preload="metadata"><source src="chat.webm#t=0.1" type="video/webm"><source src="chat.mp4" type="video/mp4"></video>
           <div class="label"><span class="t"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="tt">Chat &amp; Agents</span></span><span class="desc">Talk to any local model, or give it tools and let the agent run.</span></div>
         </div>
         <div class="preview-panel" tabindex="0">
-          <div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>[ Cookbook ]</span><span style="font-size:11px;opacity:.8;">Preview coming soon</span></div>
-          <div class="label"><span class="t"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span class="tt">Cookbook</span></span><span class="desc">Download, serve, and manage local models across your machines.</span></div>
-        </div>
-        <div class="preview-panel" tabindex="0">
           <div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg><span>[ Deep Research ]</span></div>
-          <video muted loop playsinline preload="none"><source src="research.webm" type="video/webm"><source src="research.mp4" type="video/mp4"></video>
+          <video muted loop playsinline preload="metadata"><source src="research.webm#t=0.1" type="video/webm"><source src="research.mp4" type="video/mp4"></video>
           <div class="label"><span class="t"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg><span class="tt">Deep Research</span></span><span class="desc">Ask once: it searches, reads sources, and writes back a cited report.</span></div>
         </div>
         <div class="preview-panel" tabindex="0">
           <div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg><span>[ Compare ]</span></div>
-          <video muted loop playsinline preload="none"><source src="compare.webm" type="video/webm"><source src="compare.mp4" type="video/mp4"></video>
+          <video muted loop playsinline preload="metadata"><source src="compare.webm#t=0.1" type="video/webm"><source src="compare.mp4" type="video/mp4"></video>
           <div class="label"><span class="t"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg><span class="tt">Compare</span></span><span class="desc">Send one prompt to many models at once and watch them answer side by side.</span></div>
         </div>
         <div class="preview-panel" tabindex="0">
           <div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg><span>[ Documents ]</span></div>
-          <video muted loop playsinline preload="none"><source src="document.webm" type="video/webm"><source src="document.mp4" type="video/mp4"></video>
+          <video muted loop playsinline preload="metadata"><source src="document.webm#t=0.1" type="video/webm"><source src="document.mp4" type="video/mp4"></video>
           <div class="label"><span class="t"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg><span class="tt">Documents</span></span><span class="desc">A document editor that puts you first — work on what you want, with AI help when you want it.</span></div>
         </div>
         <div class="preview-panel" tabindex="0">
           <div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7 2 2 4-4"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8M13 18h8"/></svg><span>[ Notes &amp; Tasks ]</span></div>
-          <video muted loop playsinline preload="none"><source src="notes.webm" type="video/webm"><source src="notes.mp4" type="video/mp4"></video>
+          <video muted loop playsinline preload="metadata"><source src="notes.webm#t=0.1" type="video/webm"><source src="notes.mp4" type="video/mp4"></video>
           <div class="label"><span class="t"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7 2 2 4-4"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8M13 18h8"/></svg><span class="tt">Notes &amp; Tasks</span></span><span class="desc">Capture notes and to-dos, or let scheduled agents work and brief you after.</span></div>
         </div>
         <div class="preview-panel" tabindex="0">
           <div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7 6.3 8.4a8 8 0 1 0 11.4 0z"/></svg><span>[ Themes ]</span></div>
-          <video muted loop playsinline preload="none"><source src="theme.webm" type="video/webm"><source src="theme.mp4" type="video/mp4"></video>
+          <video muted loop playsinline preload="metadata"><source src="theme.webm#t=0.1" type="video/webm"><source src="theme.mp4" type="video/mp4"></video>
           <div class="label"><span class="t"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7 6.3 8.4a8 8 0 1 0 11.4 0z"/></svg><span class="tt">Themes</span></span><span class="desc">Restyle and make it yours — edit your own, or ask the agent to make one.</span></div>
         </div>
       </div>
